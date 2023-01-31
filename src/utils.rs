@@ -50,7 +50,7 @@ pub fn argsort(array: &Array1<f64>) -> Vec<usize> {
 #[cfg(test)]
 mod testing {
     use super::argsort;
-    use ndarray::array;
+    use ndarray::{array, Axis};
 
     #[test]
     fn test_argsort_forward() {
@@ -64,5 +64,14 @@ mod testing {
         let array = array![5.0, 4.0, 3.0, 2.0, 1.0];
         let sorted = argsort(&array);
         assert_eq!(sorted, vec![4, 3, 2, 1, 0]);
+    }
+
+    #[test]
+    fn test_reordering() {
+        let pvalues = array![0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
+        let order = argsort(&pvalues);
+        let ntc_mask = array![0, 0, 0, 1, 0, 0];
+        let sorted_ntc_mask = ntc_mask.select(Axis(0), &order);
+        assert_eq!(sorted_ntc_mask.select(Axis(0), &order), ntc_mask);
     }
 }
