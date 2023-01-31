@@ -27,12 +27,11 @@ impl<'a> EncodeIndex<'a> {
         }
     }
 
-    pub fn encoding(&self) -> &[usize]{
+    pub fn encoding(&self) -> &[usize] {
         &self.encoding
     }
 
     pub fn map(&self) -> &HashMap<usize, &str> {
         &self.map
     }
-
 }

@@ -1,5 +1,5 @@
-use hashbrown::HashMap;
 use anyhow::{bail, Result};
+use hashbrown::HashMap;
 use ndarray::Array1;
 
 /// Validates the provided token is found one and only once in the gene set

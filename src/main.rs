@@ -1,6 +1,6 @@
 use intc::inc::Inc;
 use ndarray::Array1;
-use ndarray_rand::{RandomExt, rand_distr::Uniform};
+use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 fn main() {
     let m = 100;
