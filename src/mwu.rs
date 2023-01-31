@@ -51,3 +51,45 @@ pub fn mann_whitney_u(x: &Array1<f64>, y: &Array1<f64>) -> (f64, f64) {
 
     (u_t, Normal::new(0., 1.).unwrap().cdf(z_u))
 }
+
+#[cfg(test)]
+mod testing {
+    use crate::mwu::mann_whitney_u;
+
+    use super::merged_ranks;
+    use ndarray::{array, Array1};
+
+    #[test]
+    fn test_merged_ranks() {
+        let x = array![1., 3., 5.];
+        let y = array![2., 6., 4.];
+        let (ranks_x, ranks_y) = merged_ranks(&x, &y);
+        assert_eq!(ranks_x, array![1., 3., 5.]);
+        assert_eq!(ranks_y, array![2., 6., 4.]);
+    }
+
+    #[test]
+    fn test_u_statistic() {
+        let x = array![1., 2., 4.];
+        assert_eq!(super::u_statistic(&x), 1.);
+    }
+    
+    #[test]
+    fn test_u_mean() {
+        assert_eq!(super::u_mean(3., 3.), 4.5);
+    }
+
+    #[test]
+    fn test_u_std() {
+        assert_eq!(super::u_std(3., 3.), 2.29128784747792);
+    }
+
+    #[test]
+    fn test_mann_whitney_u() {
+        let x = Array1::range(1., 6., 1.);
+        let y = Array1::range(6., 11., 1.);
+        println!("{x:?} {y:?}");
+        let (_, pv) = mann_whitney_u(&x, &y);
+        assert!(pv - 1.2185e-2 < 1e-6);
+    }
+}
