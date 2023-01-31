@@ -37,8 +37,8 @@ impl<'a> EncodeIndex<'a> {
 
 #[cfg(test)]
 mod testing {
-    use hashbrown::HashMap;
     use super::EncodeIndex;
+    use hashbrown::HashMap;
 
     #[test]
     fn test_encode() {

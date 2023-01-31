@@ -73,7 +73,7 @@ mod testing {
         let x = array![1., 2., 4.];
         assert_eq!(super::u_statistic(&x), 1.);
     }
-    
+
     #[test]
     fn test_u_mean() {
         assert_eq!(super::u_mean(3., 3.), 4.5);

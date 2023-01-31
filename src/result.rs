@@ -87,5 +87,4 @@ mod testing {
         assert_eq!(result.fdr().len(), 20);
         assert!(result.threshold() >= 0.);
     }
-
 }

@@ -45,7 +45,6 @@ mod testing {
     use super::rank_test;
     use ndarray::array;
 
-    
     #[test]
     fn test_rank_test() {
         let n_genes = 2;
