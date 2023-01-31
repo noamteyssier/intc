@@ -50,6 +50,7 @@ pub fn argsort(array: &Array1<f64>) -> Vec<usize> {
 #[cfg(test)]
 mod testing {
     use super::argsort;
+    use hashbrown::HashMap;
     use ndarray::{array, Axis};
 
     #[test]
@@ -73,5 +74,55 @@ mod testing {
         let ntc_mask = array![0, 0, 0, 1, 0, 0];
         let sorted_ntc_mask = ntc_mask.select(Axis(0), &order);
         assert_eq!(sorted_ntc_mask.select(Axis(0), &order), ntc_mask);
+    }
+
+    #[test]
+    fn test_select_ranks() {
+        let encodings = vec![0, 0, 1, 1, 2, 2];
+        let ranks = array![0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
+        let selected = super::select_ranks(1, &encodings, &ranks);
+        assert_eq!(selected, array![0.3, 0.4]);
+    }
+
+    #[test]
+    fn test_validate_token() {
+        let mut map = HashMap::new();
+        map.insert(0, "gene-0");
+        map.insert(1, "gene-1");
+        map.insert(2, "gene-2");
+        map.insert(3, "gene-3");
+        map.insert(4, "gene-4");
+        let index = super::validate_token(&map, "gene-2").unwrap();
+        assert_eq!(index, 2);
+    }
+
+    #[test]
+    fn test_validate_token_duplicate() {
+        let mut map = HashMap::new();
+        map.insert(0, "gene-0");
+        map.insert(1, "gene-1");
+        map.insert(2, "gene-2");
+        map.insert(3, "gene-3");
+        map.insert(4, "gene-4");
+        let index = super::validate_token(&map, "gene");
+        assert!(index.is_err());
+    }
+
+    #[test]
+    fn test_reconstruct_names() {
+        let mut map = HashMap::new();
+        map.insert(0, "gene-0");
+        map.insert(1, "gene-1");
+        map.insert(2, "gene-2");
+        map.insert(3, "gene-3");
+        map.insert(4, "gene-4");
+        let names = super::reconstruct_names(&map, 2);
+        assert_eq!(names, vec!["gene-0", "gene-1", "gene-3", "gene-4"]);
+    }
+
+    #[test]
+    fn test_build_pseudo_names() {
+        let names = super::build_pseudo_names(5);
+        assert_eq!(names, vec!["pseudogene-0", "pseudogene-1", "pseudogene-2", "pseudogene-3", "pseudogene-4"]);
     }
 }
