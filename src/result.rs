@@ -52,3 +52,40 @@ impl IncResult {
         self.fdr.threshold()
     }
 }
+
+#[cfg(test)]
+mod testing {
+
+    #[test]
+    fn test_inc_result() {
+        use super::*;
+        let genes = vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+        let pseudo_genes = vec!["k", "l", "m", "n", "o", "p", "q", "r", "s", "t"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+        let gene_scores = vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+        let gene_pvalues = vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+        let pseudo_scores = vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+        let pseudo_pvalues = vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+        let alpha = 0.05;
+        let result = IncResult::new(
+            genes,
+            pseudo_genes,
+            gene_scores,
+            gene_pvalues,
+            pseudo_scores,
+            pseudo_pvalues,
+            alpha,
+        );
+        assert_eq!(result.genes().len(), 20);
+        assert_eq!(result.u_scores().len(), 20);
+        assert_eq!(result.u_pvalues().len(), 20);
+        assert_eq!(result.fdr().len(), 20);
+        assert!(result.threshold() >= 0.);
+    }
+
+}
