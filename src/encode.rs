@@ -34,3 +34,26 @@ impl<'a> EncodeIndex<'a> {
         &self.map
     }
 }
+
+#[cfg(test)]
+mod testing {
+    use hashbrown::HashMap;
+    use super::EncodeIndex;
+
+    #[test]
+    fn test_encode() {
+        let genes = vec!["a", "b", "c", "a", "b", "c", "a", "b", "c"]
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+        let encode = EncodeIndex::new(&genes);
+        assert_eq!(encode.encoding(), &[0, 1, 2, 0, 1, 2, 0, 1, 2]);
+        assert_eq!(
+            encode.map(),
+            &[(0, "a"), (1, "b"), (2, "c")]
+                .iter()
+                .map(|(k, v)| (*k, *v))
+                .collect::<HashMap<usize, &str>>()
+        );
+    }
+}
