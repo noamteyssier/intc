@@ -1,0 +1,13 @@
+[package]
+name = "intc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.68"
+hashbrown = "0.13.2"
+ndarray = "0.15.6"
+ndarray-rand = "0.14.0"
+statrs = "0.16.0"
