@@ -24,4 +24,16 @@ impl IncResult {
             u_pvalues: Array1::from_vec(u_pvalues),
         }
     }
+
+    pub fn genes(&self) -> &[String] {
+        &self.genes
+    }
+
+    pub fn u_scores(&self) -> &Array1<f64> {
+        &self.u_scores
+    }
+
+    pub fn u_pvalues(&self) -> &Array1<f64> {
+        &self.u_pvalues
+    }
 }

@@ -16,5 +16,5 @@ fn main() {
     let pvalues = Array1::random(m, Uniform::new(1e-8, 1.0));
     let token = "non-targeting";
     let inc = Inc::new(&pvalues, &genes, token, 100, 5);
-    let res = inc.fit().unwrap();
+    let _res = inc.fit().unwrap();
 }

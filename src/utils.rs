@@ -26,3 +26,17 @@ pub fn select_ranks(current_idx: usize, encodings: &[usize], ranks: &Array1<f64>
         .map(|(_, ranks)| *ranks)
         .collect()
 }
+
+
+/// Builds a vector of gene names from the provided map skipping the non-targeting control index
+pub fn reconstruct_names(map: &HashMap<usize, &str>, ntc_index: usize) -> Vec<String> {
+    (0..map.len())
+        .filter(|x| *x != ntc_index)
+        .map(|x| map.get(&x).unwrap().to_string())
+        .collect()
+}
+
+/// Builds a vector of pseudo gene names
+pub fn build_pseudo_names(n_pseudo: usize) -> Vec<String> {
+    (0..n_pseudo).map(|x| format!("pseudogene-{}", x)).collect()
+}

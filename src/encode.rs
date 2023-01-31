@@ -1,5 +1,4 @@
 use hashbrown::HashMap;
-use ndarray::Array1;
 
 /// Converts a list of genes into a mapping of gene to index and a list of indices
 #[derive(Debug)]

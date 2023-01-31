@@ -2,10 +2,9 @@ use crate::{
     encode::EncodeIndex,
     rank_test::{pseudo_rank_test, rank_test},
     result::IncResult,
-    utils::{select_ranks, validate_token},
+    utils::{select_ranks, validate_token, reconstruct_names, build_pseudo_names},
 };
 use anyhow::Result;
-use hashbrown::HashMap;
 use ndarray::Array1;
 
 #[derive(Debug)]
@@ -52,8 +51,8 @@ impl<'a> Inc<'a> {
             pseudo_rank_test(self.n_pseudo, self.s_pseudo, &ntc_values);
 
         // reconstruct the gene names
-        let gene_names = self.reconstruct_names(&encoding.map, ntc_index);
-        let pseudo_names = self.build_pseudo_names(self.n_pseudo);
+        let gene_names = reconstruct_names(encoding.map(), ntc_index);
+        let pseudo_names = build_pseudo_names(self.n_pseudo);
 
         Ok(IncResult::new(
             gene_names,
@@ -63,16 +62,5 @@ impl<'a> Inc<'a> {
             pseudo_scores,
             pseudo_pvalues,
         ))
-    }
-
-    fn reconstruct_names(&self, map: &HashMap<usize, &str>, ntc_index: usize) -> Vec<String> {
-        (0..map.len())
-            .filter(|x| *x != ntc_index)
-            .map(|x| map.get(&x).unwrap().to_string())
-            .collect()
-    }
-
-    fn build_pseudo_names(&self, n_pseudo: usize) -> Vec<String> {
-        (0..n_pseudo).map(|x| format!("pseudogene-{}", x)).collect()
     }
 }
