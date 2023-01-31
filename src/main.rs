@@ -13,8 +13,11 @@ fn main() {
             }
         })
         .collect::<Vec<String>>();
-    let pvalues = Array1::random(m, Uniform::new(1e-8, 1.0));
+    let pvalues = Array1::random(m, Uniform::new(0.1, 1.0));
     let token = "non-targeting";
-    let inc = Inc::new(&pvalues, &genes, token, 100, 5);
+    let alpha = 0.1;
+    let n_pseudo = 100;
+    let s_pseudo = 5;
+    let inc = Inc::new(&pvalues, &genes, token, n_pseudo, s_pseudo, alpha);
     let _res = inc.fit().unwrap();
 }

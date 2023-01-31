@@ -39,3 +39,30 @@ pub fn reconstruct_names(map: &HashMap<usize, &str>, ntc_index: usize) -> Vec<St
 pub fn build_pseudo_names(n_pseudo: usize) -> Vec<String> {
     (0..n_pseudo).map(|x| format!("pseudogene-{}", x)).collect()
 }
+
+/// Performs an argsort on a 1D ndarray and returns an array of indices
+pub fn argsort(array: &Array1<f64>) -> Vec<usize> {
+    let mut indices: Vec<usize> = (0..array.len()).collect();
+    indices.sort_by(|&a, &b| array[a].partial_cmp(&array[b]).unwrap());
+    indices
+}
+
+#[cfg(test)]
+mod testing {
+    use super::argsort;
+    use ndarray::array;
+
+    #[test]
+    fn test_argsort_forward() {
+        let array = array![1.0, 2.0, 3.0, 4.0, 5.0];
+        let sorted = argsort(&array);
+        assert_eq!(sorted, vec![0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_argsort_reverse() {
+        let array = array![5.0, 4.0, 3.0, 2.0, 1.0];
+        let sorted = argsort(&array);
+        assert_eq!(sorted, vec![4, 3, 2, 1, 0]);
+    }
+}

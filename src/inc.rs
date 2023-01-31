@@ -14,6 +14,7 @@ pub struct Inc<'a> {
     token: &'a str,
     n_pseudo: usize,
     s_pseudo: usize,
+    alpha: f64,
 }
 
 impl<'a> Inc<'a> {
@@ -23,6 +24,7 @@ impl<'a> Inc<'a> {
         token: &'a str,
         n_pseudo: usize,
         s_pseudo: usize,
+        alpha: f64,
     ) -> Inc<'a> {
         Inc {
             pvalues,
@@ -30,6 +32,7 @@ impl<'a> Inc<'a> {
             token,
             n_pseudo,
             s_pseudo,
+            alpha,
         }
     }
 
@@ -61,6 +64,7 @@ impl<'a> Inc<'a> {
             mwu_pvalues,
             pseudo_scores,
             pseudo_pvalues,
+            self.alpha,
         ))
     }
 }
