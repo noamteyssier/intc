@@ -1,5 +1,5 @@
+use crate::fdr::{Fdr, FdrResult};
 use ndarray::Array1;
-use crate::fdr::{FdrResult, Fdr};
 
 #[derive(Debug)]
 pub struct IncResult {

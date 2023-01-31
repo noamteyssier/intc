@@ -1,5 +1,5 @@
-use ndarray::{Array1, Axis};
 use crate::utils::argsort;
+use ndarray::{Array1, Axis};
 
 #[derive(Debug)]
 pub struct FdrResult {
@@ -33,7 +33,7 @@ impl<'a> Fdr<'a> {
             alpha,
         }
     }
-    
+
     pub fn fit(&self) -> FdrResult {
         let order = argsort(self.pvalues);
         let is_ntc = Self::ntc_mask(self.ntc_indices, self.pvalues.len());
@@ -44,7 +44,7 @@ impl<'a> Fdr<'a> {
         let unsorted_fdr = sorted_fdr.select(Axis(0), &order);
         FdrResult::new(unsorted_fdr, threshold)
     }
-    
+
     fn ntc_mask(ntc_indices: &[usize], n_genes: usize) -> Array1<f64> {
         let mut mask = Array1::zeros(n_genes);
         for idx in ntc_indices {
@@ -68,7 +68,9 @@ impl<'a> Fdr<'a> {
     }
 
     fn threshold(pvalues: &Array1<f64>, fdr: &Array1<f64>, alpha: f64) -> f64 {
-        let fdr_pval = fdr.iter().zip(pvalues.iter())
+        let fdr_pval = fdr
+            .iter()
+            .zip(pvalues.iter())
             .take_while(|(fdr, _pvalue)| *fdr <= &alpha)
             .reduce(|_x, y| y);
         if let Some(fp) = fdr_pval {
@@ -81,8 +83,8 @@ impl<'a> Fdr<'a> {
 
 #[cfg(test)]
 mod testing {
-    use ndarray::{array, Array1};
     use super::Fdr;
+    use ndarray::{array, Array1};
 
     #[test]
     fn test_fdr() {
@@ -90,7 +92,7 @@ mod testing {
         let ntc_indices = vec![1];
         let alpha = 0.1;
         let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
-        assert_eq!(fdr.fdr(), array![0.0, 0.5, 1./3.]);
+        assert_eq!(fdr.fdr(), array![0.0, 0.5, 1. / 3.]);
     }
 
     #[test]
@@ -99,7 +101,7 @@ mod testing {
         let ntc_indices = vec![1];
         let alpha = 0.1;
         let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
-        assert_eq!(fdr.fdr(), array![0.5, 1.0, 1./3.]);
+        assert_eq!(fdr.fdr(), array![0.5, 1.0, 1. / 3.]);
     }
 
     #[test]
@@ -116,7 +118,6 @@ mod testing {
         let ntc_indices = vec![4, 6, 9];
         let alpha = 0.1;
         let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
-        assert_eq!(fdr.threshold(), 1./3.);
+        assert_eq!(fdr.threshold(), 1. / 3.);
     }
-
 }
