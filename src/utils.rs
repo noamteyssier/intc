@@ -27,7 +27,6 @@ pub fn select_ranks(current_idx: usize, encodings: &[usize], ranks: &Array1<f64>
         .collect()
 }
 
-
 /// Builds a vector of gene names from the provided map skipping the non-targeting control index
 pub fn reconstruct_names(map: &HashMap<usize, &str>, ntc_index: usize) -> Vec<String> {
     (0..map.len())

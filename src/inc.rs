@@ -2,7 +2,7 @@ use crate::{
     encode::EncodeIndex,
     rank_test::{pseudo_rank_test, rank_test},
     result::IncResult,
-    utils::{select_ranks, validate_token, reconstruct_names, build_pseudo_names},
+    utils::{build_pseudo_names, reconstruct_names, select_ranks, validate_token},
 };
 use anyhow::Result;
 use ndarray::Array1;
