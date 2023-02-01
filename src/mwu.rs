@@ -25,29 +25,44 @@ fn u_statistic(array: &Array1<f64>) -> f64 {
     s - ((n * (n + 1.)) / 2.)
 }
 
-/// Calculats the U-Distribution Mean
+/// Calculates the U-Distribution Mean
 fn u_mean(nx: f64, ny: f64) -> f64 {
     (nx * ny) / 2.
 }
 
-/// Calculats the U-Distribution Standard Deviation
+/// Calculates the U-Distribution Standard Deviation
 fn u_std(nx: f64, ny: f64) -> f64 {
     (nx * ny * (nx + ny + 1.)).div(12.).sqrt()
 }
 
+/// Calculates the Z-Score of the U-Statistic
+//
+// Continuity correction.
+// Because SF is always used to calculate the p-value, we can always
+// _subtract_ 0.5 for the continuity correction. This always increases the
+// p-value to account for the rest of the probability mass _at_ q = U.
+fn z_score(u: f64, nx: f64, ny: f64, use_continuity: bool) -> f64 {
+    let m_u = u_mean(nx, ny);
+    let s_u = u_std(nx, ny);
+
+    if use_continuity {
+        (u - m_u + 0.5) / s_u
+    } else {
+        (u - m_u) / s_u
+    }
+
+}
+
 /// Performs the Mann-Whitney U Test otherwise known as the Rank-Sum Test to measure the
 /// statistical difference between two values through their ranks.
-pub fn mann_whitney_u(x: &Array1<f64>, y: &Array1<f64>) -> (f64, f64) {
+pub fn mann_whitney_u(x: &Array1<f64>, y: &Array1<f64>, use_continuity: bool) -> (f64, f64) {
     let (ranks_x, _ranks_y) = merged_ranks(x, y);
 
     let nx = x.len() as f64;
     let ny = y.len() as f64;
 
     let u_t = u_statistic(&ranks_x);
-    let m_u = u_mean(nx, ny);
-    let s_u = u_std(nx, ny);
-
-    let z_u = (u_t - m_u) / s_u;
+    let z_u = z_score(u_t, nx, ny, use_continuity);
 
     (u_t, Normal::new(0., 1.).unwrap().cdf(z_u))
 }
@@ -94,10 +109,20 @@ mod testing {
     }
 
     #[test]
+    fn test_z_score_continuity() {
+        assert_eq!(super::z_score(1., 3., 3., true), -1.3093073414159544);
+    }
+
+    #[test]
+    fn test_z_score_no_continuity() {
+        assert_eq!(super::z_score(1., 3., 3., false), -1.5275252316519468);
+    }
+
+    #[test]
     fn test_mann_whitney_u() {
         let x = Array1::range(1., 100., 1.);
         let y = Array1::range(100., 200., 1.);
-        let (_, pv) = mann_whitney_u(&x, &y);
+        let (_, pv) = mann_whitney_u(&x, &y, false);
         assert!(pv - 1.87e-34 < 1e-30);
     }
 }

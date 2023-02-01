@@ -15,6 +15,7 @@ pub struct Inc<'a> {
     n_pseudo: usize,
     s_pseudo: usize,
     alpha: f64,
+    continuity: bool,
 }
 
 impl<'a> Inc<'a> {
@@ -25,6 +26,7 @@ impl<'a> Inc<'a> {
         n_pseudo: usize,
         s_pseudo: usize,
         alpha: f64,
+        continuity: bool,
     ) -> Inc<'a> {
         Inc {
             pvalues,
@@ -33,6 +35,7 @@ impl<'a> Inc<'a> {
             n_pseudo,
             s_pseudo,
             alpha,
+            continuity,
         }
     }
 
@@ -49,9 +52,10 @@ impl<'a> Inc<'a> {
             encoding.encoding(),
             self.pvalues,
             &ntc_values,
+            self.continuity,
         );
         let (pseudo_scores, pseudo_pvalues) =
-            pseudo_rank_test(self.n_pseudo, self.s_pseudo, &ntc_values);
+            pseudo_rank_test(self.n_pseudo, self.s_pseudo, &ntc_values, self.continuity);
 
         // reconstruct the gene names
         let gene_names = reconstruct_names(encoding.map(), ntc_index);
