@@ -23,7 +23,7 @@ impl IncResult {
         let genes = vec![genes, pseudo_genes].concat();
         let u_scores = Array1::from_vec(vec![gene_scores, pseudo_scores].concat());
         let u_pvalues = Array1::from_vec(vec![gene_pvalues, pseudo_pvalues].concat());
-        let ntc_indices = (0..n_pseudo).collect::<Vec<usize>>();
+        let ntc_indices = Self::create_ntc_indices(n_pseudo, genes.len());
         let fdr = Fdr::new(&u_pvalues, &ntc_indices, alpha).fit();
         Self {
             genes,
@@ -31,6 +31,12 @@ impl IncResult {
             u_pvalues,
             fdr,
         }
+    }
+
+    /// Create the indices for the non-targeting control genes by
+    /// taking the indices of the last n pseudogenes
+    fn create_ntc_indices(n_pseudo: usize, n_total: usize) -> Vec<usize> {
+        (n_total-n_pseudo .. n_total).collect::<Vec<usize>>()
     }
 
     /// Get the genes
@@ -92,5 +98,18 @@ mod testing {
         assert_eq!(result.u_pvalues().len(), 20);
         assert_eq!(result.fdr().len(), 20);
         assert!(result.threshold() >= 0.);
+    }
+
+    #[test]
+    fn test_ntc_indices() {
+        use super::*;
+        let n_pseudo = 10;
+        let n_total = 20;
+        let ntc_indices = IncResult::create_ntc_indices(n_pseudo, n_total);
+        assert_eq!(ntc_indices.len(), 10);
+        assert_eq!(
+            ntc_indices,
+            vec![10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+            );
     }
 }
