@@ -41,23 +41,38 @@ pub fn build_pseudo_names(n_pseudo: usize) -> Vec<String> {
 }
 
 /// Performs an argsort on a 1D ndarray and returns an array of indices
-pub fn argsort(array: &Array1<f64>) -> Vec<usize> {
+pub fn argsort<T>(array: &Array1<T>) -> Vec<usize> 
+where
+    T: PartialOrd,
+{
     let mut indices: Vec<usize> = (0..array.len()).collect();
     indices.sort_by(|&a, &b| array[a].partial_cmp(&array[b]).unwrap());
     indices
 }
 
+/// Performs an argsort on a 1D vector and returns an array of indices
+pub fn argsort_vec<T>(vec: &Vec<T>) -> Vec<usize> 
+where
+    T: PartialOrd,
+{
+    let mut indices: Vec<usize> = (0..vec.len()).collect();
+    indices.sort_by(|&a, &b| vec[a].partial_cmp(&vec[b]).unwrap());
+    indices
+}
+
 #[cfg(test)]
 mod testing {
-    use super::argsort;
+    use super::{argsort, argsort_vec};
     use hashbrown::HashMap;
-    use ndarray::{array, Axis};
+    use ndarray::{array, Axis, Array1};
+    use ndarray_rand::{RandomExt, rand_distr::Uniform};
 
     #[test]
     fn test_argsort_forward() {
         let array = array![1.0, 2.0, 3.0, 4.0, 5.0];
         let sorted = argsort(&array);
         assert_eq!(sorted, vec![0, 1, 2, 3, 4]);
+        assert_eq!(array.select(Axis(0), &sorted), array![1.0, 2.0, 3.0, 4.0, 5.0]);
     }
 
     #[test]
@@ -65,15 +80,20 @@ mod testing {
         let array = array![5.0, 4.0, 3.0, 2.0, 1.0];
         let sorted = argsort(&array);
         assert_eq!(sorted, vec![4, 3, 2, 1, 0]);
+        assert_eq!(array.select(Axis(0), &sorted), array![1.0, 2.0, 3.0, 4.0, 5.0]);
     }
 
     #[test]
     fn test_reordering() {
-        let pvalues = array![0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
+        let pvalues = Array1::random(100, Uniform::new(0.0, 1.0));
         let order = argsort(&pvalues);
-        let ntc_mask = array![0, 0, 0, 1, 0, 0];
-        let sorted_ntc_mask = ntc_mask.select(Axis(0), &order);
-        assert_eq!(sorted_ntc_mask.select(Axis(0), &order), ntc_mask);
+        let reorder = argsort_vec(&order);
+        
+        let sorted_pvalues = pvalues.select(Axis(0), &order);
+        let resorted_pvalues = sorted_pvalues.select(Axis(0), &reorder);
+
+        assert_ne!(pvalues, sorted_pvalues);
+        assert_eq!(pvalues, resorted_pvalues);
     }
 
     #[test]
