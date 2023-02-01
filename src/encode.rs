@@ -7,7 +7,6 @@ pub struct EncodeIndex<'a> {
     pub encoding: Vec<usize>,
 }
 impl<'a> EncodeIndex<'a> {
-
     /// Create a new EncodeIndex
     pub fn new(genes: &'a [String]) -> Self {
         let mut total = 0usize;

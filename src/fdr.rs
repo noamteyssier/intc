@@ -8,7 +8,6 @@ pub struct FdrResult {
     threshold: f64,
 }
 impl FdrResult {
-    
     /// Create a new FdrResult
     ///
     /// # Arguments
@@ -41,7 +40,6 @@ pub struct Fdr<'a> {
 }
 
 impl<'a> Fdr<'a> {
-    
     /// Create a new FDR struct
     pub fn new(pvalues: &'a Array1<f64>, ntc_indices: &'a [usize], alpha: f64) -> Self {
         Self {
@@ -132,10 +130,7 @@ mod testing {
         let ntc_indices = vec![3, 5];
         let alpha = 0.1;
         let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
-        assert_eq!(
-            fdr.fdr(),
-            array![0.2, 0.0, 0.0, 0.25, 0.0, 1. / 3.]
-        );
+        assert_eq!(fdr.fdr(), array![0.2, 0.0, 0.0, 0.25, 0.0, 1. / 3.]);
     }
 
     #[test]

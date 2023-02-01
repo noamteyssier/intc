@@ -41,7 +41,7 @@ pub fn build_pseudo_names(n_pseudo: usize) -> Vec<String> {
 }
 
 /// Performs an argsort on a 1D ndarray and returns an array of indices
-pub fn argsort<T>(array: &Array1<T>) -> Vec<usize> 
+pub fn argsort<T>(array: &Array1<T>) -> Vec<usize>
 where
     T: PartialOrd,
 {
@@ -51,7 +51,7 @@ where
 }
 
 /// Performs an argsort on a 1D vector and returns an array of indices
-pub fn argsort_vec<T>(vec: &Vec<T>) -> Vec<usize> 
+pub fn argsort_vec<T>(vec: &Vec<T>) -> Vec<usize>
 where
     T: PartialOrd,
 {
@@ -64,15 +64,18 @@ where
 mod testing {
     use super::{argsort, argsort_vec};
     use hashbrown::HashMap;
-    use ndarray::{array, Axis, Array1};
-    use ndarray_rand::{RandomExt, rand_distr::Uniform};
+    use ndarray::{array, Array1, Axis};
+    use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
     #[test]
     fn test_argsort_forward() {
         let array = array![1.0, 2.0, 3.0, 4.0, 5.0];
         let sorted = argsort(&array);
         assert_eq!(sorted, vec![0, 1, 2, 3, 4]);
-        assert_eq!(array.select(Axis(0), &sorted), array![1.0, 2.0, 3.0, 4.0, 5.0]);
+        assert_eq!(
+            array.select(Axis(0), &sorted),
+            array![1.0, 2.0, 3.0, 4.0, 5.0]
+        );
     }
 
     #[test]
@@ -80,7 +83,10 @@ mod testing {
         let array = array![5.0, 4.0, 3.0, 2.0, 1.0];
         let sorted = argsort(&array);
         assert_eq!(sorted, vec![4, 3, 2, 1, 0]);
-        assert_eq!(array.select(Axis(0), &sorted), array![1.0, 2.0, 3.0, 4.0, 5.0]);
+        assert_eq!(
+            array.select(Axis(0), &sorted),
+            array![1.0, 2.0, 3.0, 4.0, 5.0]
+        );
     }
 
     #[test]
@@ -88,7 +94,7 @@ mod testing {
         let pvalues = Array1::random(100, Uniform::new(0.0, 1.0));
         let order = argsort(&pvalues);
         let reorder = argsort_vec(&order);
-        
+
         let sorted_pvalues = pvalues.select(Axis(0), &order);
         let resorted_pvalues = sorted_pvalues.select(Axis(0), &reorder);
 
@@ -143,6 +149,15 @@ mod testing {
     #[test]
     fn test_build_pseudo_names() {
         let names = super::build_pseudo_names(5);
-        assert_eq!(names, vec!["pseudogene-0", "pseudogene-1", "pseudogene-2", "pseudogene-3", "pseudogene-4"]);
+        assert_eq!(
+            names,
+            vec![
+                "pseudogene-0",
+                "pseudogene-1",
+                "pseudogene-2",
+                "pseudogene-3",
+                "pseudogene-4"
+            ]
+        );
     }
 }

@@ -36,7 +36,7 @@ impl IncResult {
     /// Create the indices for the non-targeting control genes by
     /// taking the indices of the last n pseudogenes
     fn create_ntc_indices(n_pseudo: usize, n_total: usize) -> Vec<usize> {
-        (n_total-n_pseudo .. n_total).collect::<Vec<usize>>()
+        (n_total - n_pseudo..n_total).collect::<Vec<usize>>()
     }
 
     /// Get the genes
@@ -107,9 +107,6 @@ mod testing {
         let n_total = 20;
         let ntc_indices = IncResult::create_ntc_indices(n_pseudo, n_total);
         assert_eq!(ntc_indices.len(), 10);
-        assert_eq!(
-            ntc_indices,
-            vec![10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-            );
+        assert_eq!(ntc_indices, vec![10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
     }
 }
