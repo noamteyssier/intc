@@ -7,6 +7,8 @@ pub struct EncodeIndex<'a> {
     pub encoding: Vec<usize>,
 }
 impl<'a> EncodeIndex<'a> {
+
+    /// Create a new EncodeIndex
     pub fn new(genes: &'a [String]) -> Self {
         let mut total = 0usize;
         let mut map = HashMap::with_capacity(genes.len());
@@ -26,10 +28,12 @@ impl<'a> EncodeIndex<'a> {
         }
     }
 
+    /// Get the encoding as a list of indices
     pub fn encoding(&self) -> &[usize] {
         &self.encoding
     }
 
+    /// Get the hashmap representing the encoding
     pub fn map(&self) -> &HashMap<usize, &str> {
         &self.map
     }

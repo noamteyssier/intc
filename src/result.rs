@@ -2,6 +2,7 @@ use crate::fdr::{Fdr, FdrResult};
 use ndarray::Array1;
 
 #[derive(Debug)]
+/// Result struct for Mann-Whitney U test and Empirical FDR
 pub struct IncResult {
     genes: Vec<String>,
     u_scores: Array1<f64>,
@@ -32,22 +33,27 @@ impl IncResult {
         }
     }
 
+    /// Get the genes
     pub fn genes(&self) -> &[String] {
         &self.genes
     }
 
+    /// Get the U scores
     pub fn u_scores(&self) -> &Array1<f64> {
         &self.u_scores
     }
 
+    /// Get the U p-values
     pub fn u_pvalues(&self) -> &Array1<f64> {
         &self.u_pvalues
     }
 
+    /// Get the FDR values
     pub fn fdr(&self) -> &Array1<f64> {
         self.fdr.fdr()
     }
 
+    /// Get the p-value threshold
     pub fn threshold(&self) -> f64 {
         self.fdr.threshold()
     }

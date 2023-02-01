@@ -2,23 +2,38 @@ use crate::utils::argsort;
 use ndarray::{Array1, Axis};
 
 #[derive(Debug)]
+/// Result struct for False Discovery Rate and p-value threshold
 pub struct FdrResult {
     fdr: Array1<f64>,
     threshold: f64,
 }
 impl FdrResult {
+    
+    /// Create a new FdrResult
+    ///
+    /// # Arguments
+    /// * `fdr` - Array of FDR values
+    /// * `threshold` - p-value threshold
+    ///
+    /// # Returns
+    /// FdrResult
     pub fn new(fdr: Array1<f64>, threshold: f64) -> Self {
         Self { fdr, threshold }
     }
+
+    /// Get the FDR values
     pub fn fdr(&self) -> &Array1<f64> {
         &self.fdr
     }
+
+    /// Get the p-value threshold
     pub fn threshold(&self) -> f64 {
         self.threshold
     }
 }
 
 #[derive(Debug)]
+/// False Discovery Rate
 pub struct Fdr<'a> {
     pvalues: &'a Array1<f64>,
     ntc_indices: &'a [usize],
@@ -26,6 +41,8 @@ pub struct Fdr<'a> {
 }
 
 impl<'a> Fdr<'a> {
+    
+    /// Create a new FDR struct
     pub fn new(pvalues: &'a Array1<f64>, ntc_indices: &'a [usize], alpha: f64) -> Self {
         Self {
             pvalues,
@@ -34,6 +51,7 @@ impl<'a> Fdr<'a> {
         }
     }
 
+    /// Fit the FDR
     pub fn fit(&self) -> FdrResult {
         let order = argsort(self.pvalues);
         let is_ntc = Self::ntc_mask(self.ntc_indices, self.pvalues.len());
@@ -45,6 +63,7 @@ impl<'a> Fdr<'a> {
         FdrResult::new(unsorted_fdr, threshold)
     }
 
+    /// Create a mask for the non-target controls
     fn ntc_mask(ntc_indices: &[usize], n_genes: usize) -> Array1<f64> {
         let mut mask = Array1::zeros(n_genes);
         for idx in ntc_indices {
@@ -53,6 +72,7 @@ impl<'a> Fdr<'a> {
         mask
     }
 
+    /// Calculate the empirical FDR
     fn empirical_fdr(sorted_ntc: &Array1<f64>) -> Array1<f64> {
         let mut ntc_count = 0;
         sorted_ntc
@@ -67,6 +87,7 @@ impl<'a> Fdr<'a> {
             .collect()
     }
 
+    /// Calculate the p-value threshold
     fn threshold(pvalues: &Array1<f64>, fdr: &Array1<f64>, alpha: f64) -> f64 {
         let fdr_pval = fdr
             .iter()
