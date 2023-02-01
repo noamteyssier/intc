@@ -1,4 +1,4 @@
-use crate::utils::argsort;
+use crate::utils::{argsort, argsort_vec};
 use ndarray::{Array1, Axis};
 
 #[derive(Debug)]
@@ -54,12 +54,13 @@ impl<'a> Fdr<'a> {
     /// Fit the FDR
     pub fn fit(&self) -> FdrResult {
         let order = argsort(self.pvalues);
+        let reorder = argsort_vec(&order);
         let is_ntc = Self::ntc_mask(self.ntc_indices, self.pvalues.len());
         let sorted_pvalues = self.pvalues.select(Axis(0), &order);
         let sorted_ntc = is_ntc.select(Axis(0), &order);
         let sorted_fdr = Self::empirical_fdr(&sorted_ntc);
         let threshold = Self::threshold(&sorted_pvalues, &sorted_fdr, self.alpha);
-        let unsorted_fdr = sorted_fdr.select(Axis(0), &order);
+        let unsorted_fdr = sorted_fdr.select(Axis(0), &reorder);
         FdrResult::new(unsorted_fdr, threshold)
     }
 
@@ -123,6 +124,18 @@ mod testing {
         let alpha = 0.1;
         let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
         assert_eq!(fdr.fdr(), array![0.5, 1.0, 1. / 3.]);
+    }
+
+    #[test]
+    fn test_fdr_unsorted_larger() {
+        let pvalues = array![0.5, 0.1, 0.3, 0.4, 0.2, 0.6];
+        let ntc_indices = vec![3, 5];
+        let alpha = 0.1;
+        let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
+        assert_eq!(
+            fdr.fdr(),
+            array![0.2, 0.0, 0.0, 0.25, 0.0, 1. / 3.]
+        );
     }
 
     #[test]

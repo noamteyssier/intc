@@ -61,11 +61,20 @@ mod testing {
 
     #[test]
     fn test_merged_ranks() {
-        let x = array![1., 3., 5.];
-        let y = array![2., 6., 4.];
+        let x = array![10., 20., 50.];
+        let y = array![30., 40., 60.];
         let (ranks_x, ranks_y) = merged_ranks(&x, &y);
-        assert_eq!(ranks_x, array![1., 3., 5.]);
-        assert_eq!(ranks_y, array![2., 6., 4.]);
+        assert_eq!(ranks_x, array![1., 2., 5.]);
+        assert_eq!(ranks_y, array![3., 4., 6.]);
+    }
+
+    #[test]
+    fn test_merged_ranks_tie() {
+        let x = array![10., 20., 50., 50.];
+        let y = array![30., 40., 60., 60.];
+        let (ranks_x, ranks_y) = merged_ranks(&x, &y);
+        assert_eq!(ranks_x, array![1., 2., 5.5, 5.5]);
+        assert_eq!(ranks_y, array![3., 4., 7.5, 7.5]);
     }
 
     #[test]
@@ -86,10 +95,9 @@ mod testing {
 
     #[test]
     fn test_mann_whitney_u() {
-        let x = Array1::range(1., 6., 1.);
-        let y = Array1::range(6., 11., 1.);
-        println!("{x:?} {y:?}");
+        let x = Array1::range(1., 100., 1.);
+        let y = Array1::range(100., 200., 1.);
         let (_, pv) = mann_whitney_u(&x, &y);
-        assert!(pv - 1.2185e-2 < 1e-6);
+        assert!(pv - 1.87e-34 < 1e-30);
     }
 }
