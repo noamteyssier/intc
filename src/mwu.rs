@@ -200,7 +200,9 @@ mod testing {
     #[test]
     fn test_u_statistic() {
         let x = array![1., 2., 4.];
+        let y = array![3., 5., 6.];
         assert_eq!(super::u_statistic(&x), 1.);
+        assert_eq!(super::u_statistic(&y), 8.);
     }
 
     #[test]
@@ -224,10 +226,77 @@ mod testing {
     }
 
     #[test]
-    fn test_mann_whitney_u() {
-        let x = Array1::range(1., 100., 1.);
-        let y = Array1::range(100., 200., 1.);
-        let (_, pv) = mann_whitney_u(&x, &y, false);
-        assert!(pv - 1.87e-34 < 1e-30);
+    fn test_alt_u_statistic_less() {
+        let x = array![1., 2., 4.];
+        let y = array![3., 5., 6.];
+        assert_eq!(super::alt_u_statistic(&x, &y, super::Alternative::Less), 1.);
+    }
+
+    #[test]
+    fn test_alt_u_statistic_greater() {
+        let x = array![1., 2., 4.];
+        let y = array![3., 5., 6.];
+        assert_eq!(super::alt_u_statistic(&x, &y, super::Alternative::Greater), 8.);
+    }
+
+    #[test]
+    fn test_alt_u_statistic_two_sided() {
+        let x = array![1., 2., 4.];
+        let y = array![3., 5., 6.];
+        assert_eq!(super::alt_u_statistic(&x, &y, super::Alternative::TwoSided), 1.);
+    }
+
+    #[test]
+    fn test_mann_whitney_u_twosided_continuity() {
+        let x = Array::range(0.0, 10.0, 1.0);
+        let y = Array::range(10.0, 20.0, 1.0);
+        let (u, p) = mann_whitney_u(&x, &y, super::Alternative::TwoSided, true);
+        assert_eq!(u, 0.);
+        test_close(p, 0.0001826717911243235);
+    }
+
+    #[test]
+    fn test_mann_whitney_u_twosided_no_continuity() {
+        let x = Array::range(0.0, 10.0, 1.0);
+        let y = Array::range(10.0, 20.0, 1.0);
+        let (u, p) = mann_whitney_u(&x, &y, super::Alternative::TwoSided, false);
+        assert_eq!(u, 0.);
+        test_close(p, 0.00015705228423075119);
+    }
+
+    #[test]
+    fn test_mann_whitney_u_less_continuity() {
+        let x = Array::range(0.0, 10.0, 1.0);
+        let y = Array::range(10.0, 20.0, 1.0);
+        let (u, p) = mann_whitney_u(&x, &y, super::Alternative::Less, true);
+        assert_eq!(u, 0.);
+        test_close(p, 9.133589556216175e-5);
+    }
+
+    #[test]
+    fn test_mann_whitney_u_less_no_continuity() {
+        let x = Array::range(0.0, 10.0, 1.0);
+        let y = Array::range(10.0, 20.0, 1.0);
+        let (u, p) = mann_whitney_u(&x, &y, super::Alternative::Less, false);
+        assert_eq!(u, 0.);
+        test_close(p, 7.852614211537559e-05);
+    }
+
+    #[test]
+    fn test_mann_whitney_u_greater_continuity() {
+        let x = Array::range(0.0, 10.0, 1.0);
+        let y = Array::range(10.0, 20.0, 1.0);
+        let (u, p) = mann_whitney_u(&x, &y, super::Alternative::Greater, true);
+        assert_eq!(u, 100.);
+        test_close(p, 0.9999325785388173);
+    }
+
+    #[test]
+    fn test_mann_whitney_u_greater_no_continuity() {
+        let x = Array::range(0.0, 10.0, 1.0);
+        let y = Array::range(10.0, 20.0, 1.0);
+        let (u, p) = mann_whitney_u(&x, &y, super::Alternative::Greater, false);
+        assert_eq!(u, 100.);
+        test_close(p, 0.9999214738578847);
     }
 }
