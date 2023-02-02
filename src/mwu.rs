@@ -122,29 +122,62 @@ fn z_score(u: f64, nx: f64, ny: f64, use_continuity: bool) -> f64 {
     } else {
         (u - m_u) / s_u
     }
-
 }
 
-/// Performs the Mann-Whitney U Test otherwise known as the Rank-Sum Test to measure the
-/// statistical difference between two values through their ranks.
-pub fn mann_whitney_u(x: &Array1<f64>, y: &Array1<f64>, use_continuity: bool) -> (f64, f64) {
-    let (ranks_x, _ranks_y) = merged_ranks(x, y);
+/// Calculates the pvalue of the z-score and adjusts for the alternative hypothesis
+/// if necessary.
+///
+/// # Arguments
+/// * `z_u` - The z-score of the U-Statistic
+/// * `alternative` - The alternative hypothesis to test against
+///
+/// # Returns
+/// * `pvalue` - The p-value of the test
+fn p_value(z_u: f64, alternative: Alternative) -> f64 {
+    let pvalue = Normal::new(0., 1.).unwrap().cdf(z_u);
+    match alternative {
+        Alternative::TwoSided => 2. * pvalue,
+        _ => pvalue,
+    }
+}
+
+/// Performs the Mann-Whitney U Test to measure the statistical difference between
+/// two groups through their rank values.
+///
+/// # Arguments
+/// * `x` - Array of values from the first group
+/// * `y` - Array of values from the second group
+/// * `alternative` - The alternative hypothesis to test against
+/// * `use_continuity` - Whether to use continuity correction
+pub fn mann_whitney_u(
+        x: &Array1<f64>, 
+        y: &Array1<f64>, 
+        alternative: Alternative,
+        use_continuity: bool,
+    ) -> (f64, f64) {
+    let (ranks_x, ranks_y) = merged_ranks(x, y);
 
     let nx = x.len() as f64;
     let ny = y.len() as f64;
 
-    let u_t = u_statistic(&ranks_x);
+    let u_t = alt_u_statistic(&ranks_x, &ranks_y, alternative);
     let z_u = z_score(u_t, nx, ny, use_continuity);
+    let p_v = p_value(z_u, alternative);
 
-    (u_t, Normal::new(0., 1.).unwrap().cdf(z_u))
+    (u_t, p_v)
 }
 
 #[cfg(test)]
 mod testing {
     use crate::mwu::mann_whitney_u;
-
     use super::merged_ranks;
-    use ndarray::{array, Array1};
+    use ndarray::{array, Array};
+
+    const EPSILON: f64 = 1e-10;
+
+    fn test_close(a: f64, b: f64) {
+        assert!((a - b).abs() < EPSILON);
+    }
 
     #[test]
     fn test_merged_ranks() {
