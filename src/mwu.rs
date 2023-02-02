@@ -5,7 +5,29 @@ use statrs::{
 };
 use std::ops::Div;
 
+/// Defines the alternative hypothesis 
+#[derive(Clone, Copy, Default, Debug)]
+pub enum Alternative {
+
+    /// The alternative hypothesis is that the first array is greater than the second array
+    Greater,
+
+    /// The alternative hypothesis is that the first array is less than the second array
+    Less,
+
+    /// The alternative hypothesis is that the first array is not equal to the second array
+    #[default]
+    TwoSided,
+}
+
 /// Concatenate two arrays, rank them, and return the rankings for each of the groups.
+///
+/// # Arguments
+/// * `x` - The first array
+/// * `y` - The second array
+///
+/// # Returns
+/// * `ranks` - A tuple containing the rankings for each of the groups
 fn merged_ranks(x: &Array1<f64>, y: &Array1<f64>) -> (Array1<f64>, Array1<f64>) {
     let midpoint = x.len();
     let joined = concatenate(Axis(0), &[x.view(), y.view()])
