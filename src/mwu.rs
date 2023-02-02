@@ -41,18 +41,59 @@ fn merged_ranks(x: &Array1<f64>, y: &Array1<f64>) -> (Array1<f64>, Array1<f64>) 
 }
 
 /// Calculates the U-Statistic given an array of ranks
+///
+/// # Arguments
+/// * `array` - The array of ranks
+///
+/// # Returns
+/// * `u` - The U-Statistic
 fn u_statistic(array: &Array1<f64>) -> f64 {
     let s = array.sum();
     let n = array.len() as f64;
     s - ((n * (n + 1.)) / 2.)
 }
 
+/// Calculates the Mann-Whitney U-Statistic
+///
+/// # Arguments
+/// * `x` - The first group of ranks
+/// * `y` - The second group of ranks
+/// * `alternative` - The alternative hypothesis
+///
+/// # Returns
+/// * `u` - The U-Statistic
+fn alt_u_statistic(ranks_x: &Array1<f64>, ranks_y: &Array1<f64>, alternative: Alternative) -> f64 {
+    match alternative {
+        Alternative::Less => u_statistic(ranks_x),
+        Alternative::Greater => u_statistic(ranks_y),
+        Alternative::TwoSided => {
+            let u_x = u_statistic(ranks_x);
+            let u_y = u_statistic(ranks_y);
+            u_x.min(u_y)
+        }
+    }
+}
+
 /// Calculates the U-Distribution Mean
+///
+/// # Arguments
+/// * `nx` - The number of elements in the first group
+/// * `ny` - The number of elements in the second group
+///
+/// # Returns
+/// * `m_u` - The mean of the U-Distribution
 fn u_mean(nx: f64, ny: f64) -> f64 {
     (nx * ny) / 2.
 }
 
 /// Calculates the U-Distribution Standard Deviation
+///
+/// # Arguments
+/// * `nx` - The number of elements in the first group
+/// * `ny` - The number of elements in the second group
+///
+/// # Returns
+/// * `s_u` - The standard deviation of the U-Distribution
 fn u_std(nx: f64, ny: f64) -> f64 {
     (nx * ny * (nx + ny + 1.)).div(12.).sqrt()
 }
@@ -63,6 +104,15 @@ fn u_std(nx: f64, ny: f64) -> f64 {
 // Because SF is always used to calculate the p-value, we can always
 // _subtract_ 0.5 for the continuity correction. This always increases the
 // p-value to account for the rest of the probability mass _at_ q = U.
+//
+// # Arguments
+// * `u` - The U-Statistic
+// * `nx` - The number of elements in the first group
+// * `ny` - The number of elements in the second group
+// * `use_continuity` - Whether to use continuity correction
+//
+// # Returns
+// * `z_u` - The z-score of the U-Statistic
 fn z_score(u: f64, nx: f64, ny: f64, use_continuity: bool) -> f64 {
     let m_u = u_mean(nx, ny);
     let s_u = u_std(nx, ny);
