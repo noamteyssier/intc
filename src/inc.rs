@@ -2,7 +2,7 @@ use crate::{
     encode::EncodeIndex,
     rank_test::{pseudo_rank_test, rank_test},
     result::IncResult,
-    utils::{build_pseudo_names, reconstruct_names, select_ranks, validate_token},
+    utils::{build_pseudo_names, reconstruct_names, select_ranks, validate_token}, mwu::Alternative,
 };
 use anyhow::Result;
 use ndarray::Array1;
@@ -15,6 +15,7 @@ pub struct Inc<'a> {
     n_pseudo: usize,
     s_pseudo: usize,
     alpha: f64,
+    alternative: Alternative,
     continuity: bool,
 }
 
@@ -26,6 +27,7 @@ impl<'a> Inc<'a> {
         n_pseudo: usize,
         s_pseudo: usize,
         alpha: f64,
+        alternative: Alternative,
         continuity: bool,
     ) -> Inc<'a> {
         Inc {
@@ -35,6 +37,7 @@ impl<'a> Inc<'a> {
             n_pseudo,
             s_pseudo,
             alpha,
+            alternative,
             continuity,
         }
     }
@@ -52,10 +55,11 @@ impl<'a> Inc<'a> {
             encoding.encoding(),
             self.pvalues,
             &ntc_values,
+            self.alternative,
             self.continuity,
         );
         let (pseudo_scores, pseudo_pvalues) =
-            pseudo_rank_test(self.n_pseudo, self.s_pseudo, &ntc_values, self.continuity);
+            pseudo_rank_test(self.n_pseudo, self.s_pseudo, &ntc_values, self.alternative, self.continuity);
 
         // reconstruct the gene names
         let gene_names = reconstruct_names(encoding.map(), ntc_index);
