@@ -60,6 +60,14 @@ where
     indices
 }
 
+/// Calculates the diagonal product of fold changes and pvalues
+pub fn diagonal_product(
+    log2_fold_changes: &Array1<f64>,
+    pvalues: &Array1<f64>,
+) -> Array1<f64> {
+    log2_fold_changes * pvalues.mapv(|x| x.exp2())
+}
+
 #[cfg(test)]
 mod testing {
     use super::{argsort, argsort_vec};

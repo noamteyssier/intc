@@ -2,7 +2,7 @@ use crate::{
     encode::EncodeIndex,
     rank_test::{pseudo_rank_test, rank_test},
     result::IncResult,
-    utils::{build_pseudo_names, reconstruct_names, select_ranks, validate_token}, mwu::Alternative,
+    utils::{build_pseudo_names, reconstruct_names, select_ranks, validate_token, diagonal_product}, mwu::Alternative,
 };
 use anyhow::Result;
 use ndarray::Array1;
@@ -10,6 +10,7 @@ use ndarray::Array1;
 #[derive(Debug)]
 pub struct Inc<'a> {
     pvalues: &'a Array1<f64>,
+    log2_fold_changes: &'a Array1<f64>,
     genes: &'a [String],
     token: &'a str,
     n_pseudo: usize,
@@ -22,6 +23,7 @@ pub struct Inc<'a> {
 impl<'a> Inc<'a> {
     pub fn new(
         pvalues: &'a Array1<f64>,
+        log2_fold_changes: &'a Array1<f64>,
         genes: &'a [String],
         token: &'a str,
         n_pseudo: usize,
@@ -32,6 +34,7 @@ impl<'a> Inc<'a> {
     ) -> Inc<'a> {
         Inc {
             pvalues,
+            log2_fold_changes,
             genes,
             token,
             n_pseudo,
@@ -44,8 +47,9 @@ impl<'a> Inc<'a> {
 
     pub fn fit(&self) -> Result<IncResult> {
         let encoding = EncodeIndex::new(self.genes);
+        let product = diagonal_product(self.log2_fold_changes, self.pvalues);
         let ntc_index = validate_token(&encoding.map, self.token)?;
-        let ntc_values = select_ranks(ntc_index, encoding.encoding(), self.pvalues);
+        let ntc_values = select_ranks(ntc_index, encoding.encoding(), &product);
         let n_genes = encoding.map.len() - 1;
 
         // run the rank test on all genes
@@ -53,7 +57,8 @@ impl<'a> Inc<'a> {
             n_genes,
             ntc_index,
             encoding.encoding(),
-            self.pvalues,
+            // self.pvalues,
+            &product,
             &ntc_values,
             self.alternative,
             self.continuity,
