@@ -10,7 +10,7 @@ use ndarray::Array1;
 #[derive(Debug)]
 pub struct Inc<'a> {
     pvalues: &'a Array1<f64>,
-    log2_fold_changes: &'a Array1<f64>,
+    logfc: &'a Array1<f64>,
     genes: &'a [String],
     token: &'a str,
     n_pseudo: usize,
@@ -18,12 +18,13 @@ pub struct Inc<'a> {
     alpha: f64,
     alternative: Alternative,
     continuity: bool,
+    seed: u64,
 }
 
 impl<'a> Inc<'a> {
     pub fn new(
         pvalues: &'a Array1<f64>,
-        log2_fold_changes: &'a Array1<f64>,
+        logfc: &'a Array1<f64>,
         genes: &'a [String],
         token: &'a str,
         n_pseudo: usize,
@@ -31,10 +32,11 @@ impl<'a> Inc<'a> {
         alpha: f64,
         alternative: Alternative,
         continuity: bool,
+        seed: Option<u64>,
     ) -> Inc<'a> {
         Inc {
             pvalues,
-            log2_fold_changes,
+            logfc,
             genes,
             token,
             n_pseudo,
