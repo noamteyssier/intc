@@ -8,14 +8,14 @@ pub fn rank_test(
     n_genes: usize,
     ntc_index: usize,
     encoding: &[usize],
-    pvalues: &Array1<f64>,
+    test_values: &Array1<f64>,
     ntc_values: &Array1<f64>,
     alternative: Alternative,
     continuity: bool,
 ) -> (Vec<f64>, Vec<f64>) {
     (0..=n_genes)
         .filter(|x| *x != ntc_index)
-        .map(|x| select_ranks(x, encoding, pvalues))
+        .map(|x| select_values(x, encoding, test_values))
         .map(|x| mann_whitney_u(&x, ntc_values, alternative, continuity))
         .unzip()
 }

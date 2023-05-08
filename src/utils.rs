@@ -18,12 +18,12 @@ pub fn validate_token(encode_map: &HashMap<usize, &str>, token: &str) -> Result<
 
 /// Select the ranks for a provided embedding. Applies a filter which selects all ranks
 /// for the current gene index
-pub fn select_ranks(current_idx: usize, encodings: &[usize], ranks: &Array1<f64>) -> Array1<f64> {
+pub fn select_values(current_idx: usize, encodings: &[usize], values: &Array1<f64>) -> Array1<f64> {
     encodings
         .iter()
-        .zip(ranks.iter())
+        .zip(values.iter())
         .filter(|(idx, _ranks)| **idx == current_idx)
-        .map(|(_, ranks)| *ranks)
+        .map(|(_, value)| *value)
         .collect()
 }
 
@@ -111,10 +111,10 @@ mod testing {
     }
 
     #[test]
-    fn test_select_ranks() {
+    fn test_select_values() {
         let encodings = vec![0, 0, 1, 1, 2, 2];
         let ranks = array![0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
-        let selected = super::select_ranks(1, &encodings, &ranks);
+        let selected = super::select_values(1, &encodings, &ranks);
         assert_eq!(selected, array![0.3, 0.4]);
     }
 
