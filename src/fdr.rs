@@ -41,7 +41,6 @@ impl FdrResult {
 /// False Discovery Rate
 pub struct Fdr<'a> {
     pvalues: &'a Array1<f64>,
-    logfc: &'a Array1<f64>,
     product: Array1<f64>,
     ntc_indices: &'a [usize],
     alpha: f64,
@@ -59,7 +58,6 @@ impl<'a> Fdr<'a> {
     ) -> Self {
         Self {
             pvalues,
-            logfc,
             ntc_indices,
             alpha,
             use_product,
@@ -72,7 +70,7 @@ impl<'a> Fdr<'a> {
         let values = match self.use_product {
             Some(Direction::Less) => &self.product,
             Some(Direction::Greater) => &self.product,
-            None => &self.logfc,
+            None => &self.pvalues,
         };
         let order = match self.use_product {
             Some(Direction::Less) => argsort(&self.product, true),
