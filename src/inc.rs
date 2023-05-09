@@ -2,7 +2,7 @@ use crate::{
     encode::EncodeIndex,
     rank_test::{pseudo_rank_test, rank_test},
     result::IncResult,
-    utils::{build_pseudo_names, reconstruct_names, select_values, validate_token, diagonal_product, aggregate_fold_changes}, mwu::Alternative,
+    utils::{build_pseudo_names, reconstruct_names, select_values, validate_token, aggregate_fold_changes}, mwu::Alternative, fdr::Direction,
 };
 use anyhow::Result;
 use ndarray::Array1;
@@ -18,6 +18,7 @@ pub struct Inc<'a> {
     alpha: f64,
     alternative: Alternative,
     continuity: bool,
+    use_product: Option<Direction>,
     seed: u64,
 }
 
@@ -32,6 +33,7 @@ impl<'a> Inc<'a> {
         alpha: f64,
         alternative: Alternative,
         continuity: bool,
+        use_product: Option<Direction>,
         seed: Option<u64>,
     ) -> Inc<'a> {
         Inc {
@@ -44,23 +46,21 @@ impl<'a> Inc<'a> {
             alpha,
             alternative,
             continuity,
+            use_product,
             seed: seed.unwrap_or(0),
         }
     }
 
     pub fn fit(&self) -> Result<IncResult> {
         let encoding = EncodeIndex::new(self.genes);
-        let product = diagonal_product(self.logfc, self.pvalues);
         let ntc_index = validate_token(&encoding.map, self.token)?;
         let ntc_pvalues = select_values(ntc_index, encoding.encoding(), self.pvalues);
         let ntc_logfcs = select_values(ntc_index, encoding.encoding(), self.logfc);
-        let ntc_product = diagonal_product(&ntc_logfcs, &ntc_pvalues);
         let n_genes = encoding.map.len() - 1;
 
         let gene_fc_map = aggregate_fold_changes(
             self.genes,
             self.logfc,
-            self.pvalues,
         );
 
         // run the rank test on all genes
@@ -68,9 +68,9 @@ impl<'a> Inc<'a> {
             n_genes,
             ntc_index,
             encoding.encoding(),
-            &product,
-            &ntc_product,
-            self.alternative,
+            self.pvalues,
+            &ntc_pvalues,
+            Alternative::Less,
             self.continuity,
         );
 
@@ -107,6 +107,7 @@ impl<'a> Inc<'a> {
             pseudo_pvalues,
             pseudo_logfc,
             self.alpha,
+            self.use_product,
         ))
     }
 }
