@@ -1,4 +1,4 @@
-use crate::fdr::{Fdr, FdrResult, Direction};
+use crate::fdr::{Direction, Fdr, FdrResult};
 use ndarray::Array1;
 
 #[derive(Debug)]

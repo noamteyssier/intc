@@ -1,8 +1,13 @@
 use crate::{
     encode::EncodeIndex,
+    fdr::Direction,
+    mwu::Alternative,
     rank_test::{pseudo_rank_test, rank_test},
     result::IncResult,
-    utils::{build_pseudo_names, reconstruct_names, select_values, validate_token, aggregate_fold_changes}, mwu::Alternative, fdr::Direction,
+    utils::{
+        aggregate_fold_changes, build_pseudo_names, reconstruct_names, select_values,
+        validate_token,
+    },
 };
 use anyhow::Result;
 use ndarray::Array1;
@@ -58,10 +63,7 @@ impl<'a> Inc<'a> {
         let ntc_logfcs = select_values(ntc_index, encoding.encoding(), self.logfc);
         let n_genes = encoding.map.len() - 1;
 
-        let gene_fc_map = aggregate_fold_changes(
-            self.genes,
-            self.logfc,
-        );
+        let gene_fc_map = aggregate_fold_changes(self.genes, self.logfc);
 
         // run the rank test on all genes
         let (mwu_scores, mwu_pvalues) = rank_test(
@@ -75,16 +77,15 @@ impl<'a> Inc<'a> {
         );
 
         // run the rank test on pseudo genes
-        let (pseudo_scores, pseudo_pvalues, pseudo_logfc) =
-            pseudo_rank_test(
-                self.n_pseudo, 
-                self.s_pseudo, 
-                &ntc_pvalues, 
-                &ntc_logfcs,
-                self.alternative, 
-                self.continuity,
-                self.seed,
-            );
+        let (pseudo_scores, pseudo_pvalues, pseudo_logfc) = pseudo_rank_test(
+            self.n_pseudo,
+            self.s_pseudo,
+            &ntc_pvalues,
+            &ntc_logfcs,
+            self.alternative,
+            self.continuity,
+            self.seed,
+        );
 
         // reconstruct the gene names
         let gene_names = reconstruct_names(encoding.map(), ntc_index);

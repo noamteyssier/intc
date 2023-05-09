@@ -1,6 +1,13 @@
-use crate::{mwu::{mann_whitney_u, Alternative}, utils::select_values};
+use crate::{
+    mwu::{mann_whitney_u, Alternative},
+    utils::select_values,
+};
 use ndarray::{Array1, Axis};
-use ndarray_rand::{rand_distr::Uniform, RandomExt, rand::{SeedableRng, rngs::StdRng}};
+use ndarray_rand::{
+    rand::{rngs::StdRng, SeedableRng},
+    rand_distr::Uniform,
+    RandomExt,
+};
 
 /// Performs a rank test for each gene in the dataset.
 /// Returns a tuple of vectors containing the U and p-values for each gene.
@@ -31,7 +38,6 @@ pub fn pseudo_rank_test(
     continuity: bool,
     seed: u64,
 ) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
-
     let mut pseudo_scores = Vec::with_capacity(n_pseudo);
     let mut pseudo_pvalues = Vec::with_capacity(n_pseudo);
     let mut pseudo_logfc = Vec::with_capacity(n_pseudo);
@@ -39,10 +45,8 @@ pub fn pseudo_rank_test(
     let mut rng = StdRng::seed_from_u64(seed);
 
     (0..n_pseudo)
-
         // generate array of random indices considered "in" the test group
         .map(|_| Array1::random_using(s_pseudo, Uniform::new(0, num_ntc), &mut rng))
-
         // generate the complement list of indices considered "out" of the test group
         .map(|mask| {
             let slice_mask = mask.as_slice().unwrap().to_owned();
@@ -51,7 +55,6 @@ pub fn pseudo_rank_test(
                 .collect::<Vec<usize>>();
             (slice_mask, out_mask)
         })
-
         // subset the pvalues and logfc to the "in" and "out" groups
         .map(|(in_mask, out_mask)| {
             let in_group_pvalues = ntc_pvalues.select(Axis(0), &in_mask);
@@ -59,7 +62,6 @@ pub fn pseudo_rank_test(
             let out_group_pvalues = ntc_pvalues.select(Axis(0), &out_mask);
             (in_group_pvalues, in_group_logfcs, out_group_pvalues)
         })
-
         // calculate the U, p-values, and aggregate logfc for each pseudo gene
         .for_each(|(ig_pvalues, ig_logfcs, og_pvalues)| {
             let (score, pvalue) = mann_whitney_u(&ig_pvalues, &og_pvalues, alternative, continuity);
@@ -70,14 +72,14 @@ pub fn pseudo_rank_test(
             pseudo_logfc.push(logfc);
         });
 
-        (pseudo_scores, pseudo_pvalues, pseudo_logfc)
+    (pseudo_scores, pseudo_pvalues, pseudo_logfc)
 }
 
 #[cfg(test)]
 mod testing {
     use super::rank_test;
-    use ndarray::array;
     use crate::mwu::Alternative;
+    use ndarray::array;
 
     #[test]
     fn test_rank_test() {
@@ -87,7 +89,15 @@ mod testing {
         let test_values = array![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.0];
         let ntc_values = array![0.7, 0.8, 0.9, 0.7, 0.8];
         let alternative = Alternative::TwoSided;
-        let (u, p) = rank_test(n_genes, ntc_index, &encoding, &test_values, &ntc_values, alternative, false);
+        let (u, p) = rank_test(
+            n_genes,
+            ntc_index,
+            &encoding,
+            &test_values,
+            &ntc_values,
+            alternative,
+            false,
+        );
         assert_eq!(u, vec![3.0, 4.5]);
         assert_eq!(p, vec![0.17971249488715443, 0.37109336955630695]);
     }
@@ -100,7 +110,15 @@ mod testing {
         let ntc_logfcs = array![0.7, 0.7, 0.7, 0.7, 0.7, 0.7];
         let alternative = Alternative::TwoSided;
         let seed = 0;
-        let (_u, p, _l) = super::pseudo_rank_test(n_pseudo, s_pseudo, &ntc_pvalues, &ntc_logfcs, alternative, false, seed);
+        let (_u, p, _l) = super::pseudo_rank_test(
+            n_pseudo,
+            s_pseudo,
+            &ntc_pvalues,
+            &ntc_logfcs,
+            alternative,
+            false,
+            seed,
+        );
         assert_eq!(p, vec![1.0, 1.0]);
     }
 }

@@ -66,10 +66,7 @@ where
 }
 
 /// Calculates the diagonal product of fold changes and pvalues
-pub fn diagonal_product(
-    log2_fold_changes: &Array1<f64>,
-    pvalues: &Array1<f64>,
-) -> Array1<f64> {
+pub fn diagonal_product(log2_fold_changes: &Array1<f64>, pvalues: &Array1<f64>) -> Array1<f64> {
     log2_fold_changes * pvalues.mapv(|x| -x.log10())
 }
 
