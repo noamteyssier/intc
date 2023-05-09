@@ -1,5 +1,11 @@
-use crate::utils::{argsort, argsort_vec};
+use crate::utils::{argsort, argsort_vec, diagonal_product};
 use ndarray::{Array1, Axis};
+
+#[derive(Clone, Copy, Debug)]
+pub enum Direction {
+    Less,
+    Greater,
+}
 
 #[derive(Debug)]
 /// Result struct for False Discovery Rate and p-value threshold
@@ -35,29 +41,48 @@ impl FdrResult {
 /// False Discovery Rate
 pub struct Fdr<'a> {
     pvalues: &'a Array1<f64>,
+    product: Array1<f64>,
     ntc_indices: &'a [usize],
     alpha: f64,
+    use_product: Option<Direction>,
 }
 
 impl<'a> Fdr<'a> {
     /// Create a new FDR struct
-    pub fn new(pvalues: &'a Array1<f64>, ntc_indices: &'a [usize], alpha: f64) -> Self {
+    pub fn new(
+        pvalues: &'a Array1<f64>,
+        logfc: &'a Array1<f64>,
+        ntc_indices: &'a [usize],
+        alpha: f64,
+        use_product: Option<Direction>,
+    ) -> Self {
         Self {
             pvalues,
             ntc_indices,
             alpha,
+            use_product,
+            product: diagonal_product(logfc, pvalues),
         }
     }
 
     /// Fit the FDR
     pub fn fit(&self) -> FdrResult {
-        let order = argsort(self.pvalues);
+        let values = match self.use_product {
+            Some(Direction::Less) => &self.product,
+            Some(Direction::Greater) => &self.product,
+            None => &self.pvalues,
+        };
+        let order = match self.use_product {
+            Some(Direction::Less) => argsort(&self.product, true),
+            Some(Direction::Greater) => argsort(&self.product, false),
+            None => argsort(&self.pvalues, true),
+        };
         let reorder = argsort_vec(&order);
         let is_ntc = Self::ntc_mask(self.ntc_indices, self.pvalues.len());
-        let sorted_pvalues = self.pvalues.select(Axis(0), &order);
+        let sorted_values = values.select(Axis(0), &order);
         let sorted_ntc = is_ntc.select(Axis(0), &order);
         let sorted_fdr = Self::empirical_fdr(&sorted_ntc);
-        let threshold = Self::threshold(&sorted_pvalues, &sorted_fdr, self.alpha);
+        let threshold = Self::threshold(&sorted_values, &sorted_fdr, self.alpha);
         let unsorted_fdr = sorted_fdr.select(Axis(0), &reorder);
         FdrResult::new(unsorted_fdr, threshold)
     }
@@ -87,11 +112,11 @@ impl<'a> Fdr<'a> {
     }
 
     /// Calculate the p-value threshold
-    fn threshold(pvalues: &Array1<f64>, fdr: &Array1<f64>, alpha: f64) -> f64 {
+    fn threshold(values: &Array1<f64>, fdr: &Array1<f64>, alpha: f64) -> f64 {
         let fdr_pval = fdr
             .iter()
-            .zip(pvalues.iter())
-            .take_while(|(fdr, _pvalue)| *fdr <= &alpha)
+            .zip(values.iter())
+            .take_while(|(fdr, _value)| *fdr <= &alpha)
             .reduce(|_x, y| y);
         if let Some(fp) = fdr_pval {
             *fp.1
@@ -109,27 +134,30 @@ mod testing {
     #[test]
     fn test_fdr() {
         let pvalues = array![0.1, 0.2, 0.3];
+        let logfc = array![0.1, 0.2, 0.3];
         let ntc_indices = vec![1];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
         assert_eq!(fdr.fdr(), array![0.0, 0.5, 1. / 3.]);
     }
 
     #[test]
     fn test_fdr_unsorted() {
         let pvalues = array![0.2, 0.1, 0.3];
+        let logfc = array![0.1, 0.2, 0.3];
         let ntc_indices = vec![1];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
         assert_eq!(fdr.fdr(), array![0.5, 1.0, 1. / 3.]);
     }
 
     #[test]
     fn test_fdr_unsorted_larger() {
         let pvalues = array![0.5, 0.1, 0.3, 0.4, 0.2, 0.6];
+        let logfc = array![0.5, 0.1, 0.3, 0.4, 0.2, 0.6];
         let ntc_indices = vec![3, 5];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
         assert_eq!(fdr.fdr(), array![0.2, 0.0, 0.0, 0.25, 0.0, 1. / 3.]);
     }
 
@@ -144,9 +172,10 @@ mod testing {
     fn test_fdr_threshold() {
         let m = 10;
         let pvalues = Array1::linspace(0.0, 1.0, m);
+        let logfc = Array1::linspace(0.0, 1.0, m);
         let ntc_indices = vec![4, 6, 9];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &ntc_indices, alpha).fit();
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
         assert_eq!(fdr.threshold(), 1. / 3.);
     }
 }

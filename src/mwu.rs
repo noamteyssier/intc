@@ -5,10 +5,9 @@ use statrs::{
 };
 use std::ops::Div;
 
-/// Defines the alternative hypothesis 
+/// Defines the alternative hypothesis
 #[derive(Clone, Copy, Default, Debug)]
 pub enum Alternative {
-
     /// The alternative hypothesis is that the first array is greater than the second array
     Greater,
 
@@ -150,11 +149,11 @@ fn p_value(z_u: f64, alternative: Alternative) -> f64 {
 /// * `alternative` - The alternative hypothesis to test against
 /// * `use_continuity` - Whether to use continuity correction
 pub fn mann_whitney_u(
-        x: &Array1<f64>, 
-        y: &Array1<f64>, 
-        alternative: Alternative,
-        use_continuity: bool,
-    ) -> (f64, f64) {
+    x: &Array1<f64>,
+    y: &Array1<f64>,
+    alternative: Alternative,
+    use_continuity: bool,
+) -> (f64, f64) {
     let (ranks_x, ranks_y) = merged_ranks(x, y);
 
     let nx = x.len() as f64;
@@ -169,8 +168,8 @@ pub fn mann_whitney_u(
 
 #[cfg(test)]
 mod testing {
-    use crate::mwu::mann_whitney_u;
     use super::merged_ranks;
+    use crate::mwu::mann_whitney_u;
     use ndarray::{array, Array};
 
     const EPSILON: f64 = 1e-10;
@@ -236,14 +235,20 @@ mod testing {
     fn test_alt_u_statistic_greater() {
         let x = array![1., 2., 4.];
         let y = array![3., 5., 6.];
-        assert_eq!(super::alt_u_statistic(&x, &y, super::Alternative::Greater), 8.);
+        assert_eq!(
+            super::alt_u_statistic(&x, &y, super::Alternative::Greater),
+            8.
+        );
     }
 
     #[test]
     fn test_alt_u_statistic_two_sided() {
         let x = array![1., 2., 4.];
         let y = array![3., 5., 6.];
-        assert_eq!(super::alt_u_statistic(&x, &y, super::Alternative::TwoSided), 1.);
+        assert_eq!(
+            super::alt_u_statistic(&x, &y, super::Alternative::TwoSided),
+            1.
+        );
     }
 
     #[test]

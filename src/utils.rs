@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 use hashbrown::HashMap;
-use ndarray::Array1;
+use ndarray::{Array1, Axis};
+use std::hash::Hash;
 
 /// Validates the provided token is found one and only once in the gene set
 pub fn validate_token(encode_map: &HashMap<usize, &str>, token: &str) -> Result<usize> {
@@ -18,12 +19,12 @@ pub fn validate_token(encode_map: &HashMap<usize, &str>, token: &str) -> Result<
 
 /// Select the ranks for a provided embedding. Applies a filter which selects all ranks
 /// for the current gene index
-pub fn select_ranks(current_idx: usize, encodings: &[usize], ranks: &Array1<f64>) -> Array1<f64> {
+pub fn select_values(current_idx: usize, encodings: &[usize], values: &Array1<f64>) -> Array1<f64> {
     encodings
         .iter()
-        .zip(ranks.iter())
+        .zip(values.iter())
         .filter(|(idx, _ranks)| **idx == current_idx)
-        .map(|(_, ranks)| *ranks)
+        .map(|(_, value)| *value)
         .collect()
 }
 
@@ -41,12 +42,16 @@ pub fn build_pseudo_names(n_pseudo: usize) -> Vec<String> {
 }
 
 /// Performs an argsort on a 1D ndarray and returns an array of indices
-pub fn argsort<T>(array: &Array1<T>) -> Vec<usize>
+pub fn argsort<T>(array: &Array1<T>, ascending: bool) -> Vec<usize>
 where
     T: PartialOrd,
 {
     let mut indices: Vec<usize> = (0..array.len()).collect();
-    indices.sort_by(|&a, &b| array[a].partial_cmp(&array[b]).unwrap());
+    if ascending {
+        indices.sort_by(|&a, &b| array[a].partial_cmp(&array[b]).unwrap());
+    } else {
+        indices.sort_by(|&a, &b| array[b].partial_cmp(&array[a]).unwrap());
+    }
     indices
 }
 
@@ -60,6 +65,37 @@ where
     indices
 }
 
+/// Calculates the diagonal product of fold changes and pvalues
+pub fn diagonal_product(log2_fold_changes: &Array1<f64>, pvalues: &Array1<f64>) -> Array1<f64> {
+    log2_fold_changes * pvalues.mapv(|x| -x.log10())
+}
+
+/// recovers the indices of all unique values in a vector and returns a hashmap of the unique values and their indices
+/// # Arguments
+/// * `vec` - the vector to be searched and hashed
+/// ```
+pub fn unique_indices<T: Eq + Hash + Clone>(vec: &[T]) -> HashMap<T, Vec<usize>> {
+    let mut map = HashMap::new();
+    for (i, x) in vec.iter().enumerate() {
+        map.entry(x.clone()).or_insert(Vec::new()).push(i);
+    }
+    map
+}
+
+pub fn aggregate_fold_changes(
+    gene_names: &[String],
+    fold_changes: &Array1<f64>,
+) -> HashMap<String, f64> {
+    let idx_map = unique_indices(gene_names);
+    idx_map
+        .iter()
+        .map(|(k, v)| {
+            let fc = fold_changes.select(Axis(0), v).mean().unwrap();
+            (k.clone(), fc)
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod testing {
     use super::{argsort, argsort_vec};
@@ -70,7 +106,7 @@ mod testing {
     #[test]
     fn test_argsort_forward() {
         let array = array![1.0, 2.0, 3.0, 4.0, 5.0];
-        let sorted = argsort(&array);
+        let sorted = argsort(&array, true);
         assert_eq!(sorted, vec![0, 1, 2, 3, 4]);
         assert_eq!(
             array.select(Axis(0), &sorted),
@@ -81,7 +117,7 @@ mod testing {
     #[test]
     fn test_argsort_reverse() {
         let array = array![5.0, 4.0, 3.0, 2.0, 1.0];
-        let sorted = argsort(&array);
+        let sorted = argsort(&array, true);
         assert_eq!(sorted, vec![4, 3, 2, 1, 0]);
         assert_eq!(
             array.select(Axis(0), &sorted),
@@ -92,7 +128,7 @@ mod testing {
     #[test]
     fn test_reordering() {
         let pvalues = Array1::random(100, Uniform::new(0.0, 1.0));
-        let order = argsort(&pvalues);
+        let order = argsort(&pvalues, true);
         let reorder = argsort_vec(&order);
 
         let sorted_pvalues = pvalues.select(Axis(0), &order);
@@ -103,10 +139,10 @@ mod testing {
     }
 
     #[test]
-    fn test_select_ranks() {
+    fn test_select_values() {
         let encodings = vec![0, 0, 1, 1, 2, 2];
         let ranks = array![0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
-        let selected = super::select_ranks(1, &encodings, &ranks);
+        let selected = super::select_values(1, &encodings, &ranks);
         assert_eq!(selected, array![0.3, 0.4]);
     }
 
