@@ -42,12 +42,16 @@ pub fn build_pseudo_names(n_pseudo: usize) -> Vec<String> {
 }
 
 /// Performs an argsort on a 1D ndarray and returns an array of indices
-pub fn argsort<T>(array: &Array1<T>) -> Vec<usize>
+pub fn argsort<T>(array: &Array1<T>, ascending: bool) -> Vec<usize>
 where
     T: PartialOrd,
 {
     let mut indices: Vec<usize> = (0..array.len()).collect();
-    indices.sort_by(|&a, &b| array[a].partial_cmp(&array[b]).unwrap());
+    if ascending {
+        indices.sort_by(|&a, &b| array[a].partial_cmp(&array[b]).unwrap());
+    } else {
+        indices.sort_by(|&a, &b| array[b].partial_cmp(&array[a]).unwrap());
+    }
     indices
 }
 
@@ -66,7 +70,7 @@ pub fn diagonal_product(
     log2_fold_changes: &Array1<f64>,
     pvalues: &Array1<f64>,
 ) -> Array1<f64> {
-    log2_fold_changes * pvalues.mapv(|x| x.exp2())
+    log2_fold_changes * pvalues.mapv(|x| -x.log10())
 }
 
 /// recovers the indices of all unique values in a vector and returns a hashmap of the unique values and their indices
@@ -81,51 +85,19 @@ pub fn unique_indices<T: Eq + Hash + Clone>(vec: &[T]) -> HashMap<T, Vec<usize>>
     map
 }
 
-/// calculates the weighted fold change for each unique value in a vector
-/// # Arguments
-/// * `fold_change` - the fold change values
-/// * `pvalues` - the pvalues corresponding to the fold change values to be inversely weighted
-/// * `map` - a hashmap of the unique values and their indices
-pub fn weighted_fold_change<T: Eq + Hash + Clone>(
-    fold_change: &Array1<f64>,
-    pvalues: &Array1<f64>,
-    map: &HashMap<T, Vec<usize>>,
-) -> HashMap<T, f64> {
-    map.iter()
-        .map(|(k, v)| {
-            let fc = fold_change.select(Axis(0), v);
-            let weights = 1.0 - pvalues.select(Axis(0), v);
-            let weighted_fc = weighted_mean(&fc, &weights);
-            (k.clone(), weighted_fc)
-        })
-        .collect()
-}
-
 pub fn aggregate_fold_changes(
     gene_names: &[String],
     fold_changes: &Array1<f64>,
-    pvalues: &Array1<f64>,
 ) -> HashMap<String, f64> {
-    let map = unique_indices(gene_names);
-    weighted_fold_change(fold_changes, pvalues, &map)
+    let idx_map = unique_indices(gene_names);
+    idx_map
+        .iter()
+        .map(|(k, v)| {
+            let fc = fold_changes.select(Axis(0), v).mean().unwrap();
+            (k.clone(), fc)
+        })
+        .collect()
 }
-
-
-/// Weighted mean of the provided array
-///
-/// The weighted arithmetic mean is calculated as:
-/// ```text
-/// m = (x @ w) / w.sum()
-/// ```
-///
-/// # Arguments
-/// * `array` - the array to be averaged
-/// * `weights` - the weights to be applied to each element of the array
-pub fn weighted_mean(array: &Array1<f64>, weights: &Array1<f64>) -> f64 {
-    array.dot(weights) / weights.sum()
-}
-
-
 
 #[cfg(test)]
 mod testing {
@@ -137,7 +109,7 @@ mod testing {
     #[test]
     fn test_argsort_forward() {
         let array = array![1.0, 2.0, 3.0, 4.0, 5.0];
-        let sorted = argsort(&array);
+        let sorted = argsort(&array, true);
         assert_eq!(sorted, vec![0, 1, 2, 3, 4]);
         assert_eq!(
             array.select(Axis(0), &sorted),
@@ -148,7 +120,7 @@ mod testing {
     #[test]
     fn test_argsort_reverse() {
         let array = array![5.0, 4.0, 3.0, 2.0, 1.0];
-        let sorted = argsort(&array);
+        let sorted = argsort(&array, true);
         assert_eq!(sorted, vec![4, 3, 2, 1, 0]);
         assert_eq!(
             array.select(Axis(0), &sorted),
@@ -159,7 +131,7 @@ mod testing {
     #[test]
     fn test_reordering() {
         let pvalues = Array1::random(100, Uniform::new(0.0, 1.0));
-        let order = argsort(&pvalues);
+        let order = argsort(&pvalues, true);
         let reorder = argsort_vec(&order);
 
         let sorted_pvalues = pvalues.select(Axis(0), &order);
