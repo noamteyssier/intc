@@ -154,7 +154,7 @@ mod testing {
     #[test]
     fn test_fdr_unsorted_larger() {
         let pvalues = array![0.5, 0.1, 0.3, 0.4, 0.2, 0.6];
-        let logfc = array![0.1, 0.2, 0.3];
+        let logfc = array![0.5, 0.1, 0.3, 0.4, 0.2, 0.6];
         let ntc_indices = vec![3, 5];
         let alpha = 0.1;
         let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
