@@ -1,4 +1,4 @@
-use crate::fdr::{Fdr, FdrResult};
+use crate::fdr::{Fdr, FdrResult, Direction};
 use ndarray::Array1;
 
 #[derive(Debug)]
@@ -21,6 +21,7 @@ impl IncResult {
         pseudo_pvalues: Vec<f64>,
         pseudo_logfc: Vec<f64>,
         alpha: f64,
+        use_product: Option<Direction>,
     ) -> Self {
         let n_pseudo = pseudo_genes.len();
         let genes = vec![genes, pseudo_genes].concat();
@@ -28,7 +29,7 @@ impl IncResult {
         let u_pvalues = Array1::from_vec(vec![gene_pvalues, pseudo_pvalues].concat());
         let logfc = Array1::from_vec(vec![gene_logfc, pseudo_logfc].concat());
         let ntc_indices = Self::create_ntc_indices(n_pseudo, genes.len());
-        let fdr = Fdr::new(&u_pvalues, &ntc_indices, alpha).fit();
+        let fdr = Fdr::new(&u_pvalues, &logfc, &ntc_indices, alpha, use_product).fit();
         Self {
             genes,
             u_scores,
@@ -106,6 +107,7 @@ mod testing {
             pseudo_pvalues,
             pseudo_logfc,
             alpha,
+            None,
         );
         assert_eq!(result.genes().len(), 20);
         assert_eq!(result.u_scores().len(), 20);
