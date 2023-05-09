@@ -1,4 +1,4 @@
-use crate::{mwu::{mann_whitney_u, Alternative}, utils::{select_values, diagonal_product}};
+use crate::{mwu::{mann_whitney_u, Alternative}, utils::select_values};
 use ndarray::{Array1, Axis};
 use ndarray_rand::{rand_distr::Uniform, RandomExt, rand::{SeedableRng, rngs::StdRng}};
 
@@ -57,16 +57,12 @@ pub fn pseudo_rank_test(
             let in_group_pvalues = ntc_pvalues.select(Axis(0), &in_mask);
             let in_group_logfcs = ntc_logfcs.select(Axis(0), &in_mask);
             let out_group_pvalues = ntc_pvalues.select(Axis(0), &out_mask);
-            let out_group_logfcs = ntc_logfcs.select(Axis(0), &out_mask);
-            (in_group_pvalues, in_group_logfcs, out_group_pvalues, out_group_logfcs)
+            (in_group_pvalues, in_group_logfcs, out_group_pvalues)
         })
 
         // calculate the U, p-values, and aggregate logfc for each pseudo gene
-        .for_each(|(ig_pvalues, ig_logfcs, og_pvalues, og_logfcs)| {
-            let ig_product = diagonal_product(&ig_logfcs, &ig_pvalues);
-            let og_product = diagonal_product(&og_logfcs, &og_pvalues);
-
-            let (score, pvalue) = mann_whitney_u(&ig_product, &og_product, alternative, continuity);
+        .for_each(|(ig_pvalues, ig_logfcs, og_pvalues)| {
+            let (score, pvalue) = mann_whitney_u(&ig_pvalues, &og_pvalues, alternative, continuity);
             let logfc = ig_logfcs.mean().unwrap_or(0.0);
 
             pseudo_scores.push(score);
