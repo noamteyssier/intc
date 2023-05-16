@@ -1,6 +1,8 @@
 use crate::utils::{argsort, argsort_vec, diagonal_product};
 use ndarray::{Array1, Axis};
 
+const EPSILON: f64 = 1e-10;
+
 #[derive(Clone, Copy, Debug)]
 pub enum Direction {
     Less,
@@ -82,7 +84,7 @@ impl<'a> Fdr<'a> {
         let sorted_values = values.select(Axis(0), &order);
         let sorted_ntc = is_ntc.select(Axis(0), &order);
         let sorted_fdr = Self::empirical_fdr(&sorted_ntc);
-        let threshold = Self::threshold(&sorted_values, &sorted_fdr, self.alpha);
+        let threshold = Self::threshold(&sorted_values, &sorted_fdr, self.alpha, self.use_product);
         let unsorted_fdr = sorted_fdr.select(Axis(0), &reorder);
         FdrResult::new(unsorted_fdr, threshold)
     }
@@ -112,7 +114,7 @@ impl<'a> Fdr<'a> {
     }
 
     /// Calculate the p-value threshold
-    fn threshold(values: &Array1<f64>, fdr: &Array1<f64>, alpha: f64) -> f64 {
+    fn threshold(values: &Array1<f64>, fdr: &Array1<f64>, alpha: f64, use_product: Option<Direction>) -> f64 {
         let fdr_pval = fdr
             .iter()
             .zip(values.iter())
@@ -121,13 +123,19 @@ impl<'a> Fdr<'a> {
         if let Some(fp) = fdr_pval {
             *fp.1
         } else {
-            0.0
+            match use_product {
+                Some(Direction::Greater) => values.fold(0.0, |acc: f64, x| acc.max(*x)) + EPSILON,
+                Some(Direction::Less) => values.fold(1.0, |acc: f64, x| acc.min(*x)) - EPSILON,
+                _ => (values.fold(1.0, |acc: f64, x| acc.min(*x)) - EPSILON).max(0.0),
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod testing {
+    use crate::fdr::{Direction, EPSILON};
+
     use super::Fdr;
     use ndarray::{array, Array1};
 
@@ -177,5 +185,60 @@ mod testing {
         let alpha = 0.1;
         let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
         assert_eq!(fdr.threshold(), 1. / 3.);
+    }
+
+    #[test]
+    fn test_fdr_threshold_direction_lt_saturated() {
+        let m = 10;
+        let pvalues = Array1::linspace(0.1, 1.0, m);
+        let logfc = Array1::linspace(-1.0, -0.01, m);
+        let ntc_indices = vec![0, 3, 5];
+        let alpha = 0.1;
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, Some(Direction::Less)).fit();
+        assert_eq!(fdr.threshold(), -(0.1f64).log10() * -1.0 - EPSILON);
+    }
+
+    #[test]
+    fn test_fdr_threshold_direction_gt_saturated() {
+        let m = 10;
+        let pvalues = Array1::linspace(0.1, 1.0, m);
+        let logfc = Array1::linspace(0.1, 1.0, m).iter().rev().cloned().collect::<Array1<f64>>();
+        let ntc_indices = vec![0, 3, 5];
+        let alpha = 0.1;
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, Some(Direction::Greater)).fit();
+        assert_eq!(fdr.threshold(), -(0.1f64).log10() * 1.0 + EPSILON);
+    }
+
+    #[test]
+    fn test_fdr_threshold_saturated() {
+        let m = 10;
+        let pvalues = Array1::linspace(0.1, 1.0, m);
+        let logfc = Array1::linspace(-1.0, -0.01, m);
+        let ntc_indices = vec![0, 3, 5];
+        let alpha = 0.1;
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
+        assert_eq!(fdr.threshold(), 0.1f64 - EPSILON);
+    }
+
+    #[test]
+    fn test_fdr_threshold_saturated_epsilon() {
+        let m = 10;
+        let pvalues = Array1::linspace(EPSILON, 1.0, m);
+        let logfc = Array1::linspace(-1.0, -0.01, m);
+        let ntc_indices = vec![0, 3, 5];
+        let alpha = 0.1;
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
+        assert_eq!(fdr.threshold(), 0.0);
+    }
+
+    #[test]
+    fn test_fdr_threshold_saturated_nonzero() {
+        let m = 10;
+        let pvalues = Array1::linspace(f64::EPSILON, 1.0, m);
+        let logfc = Array1::linspace(-1.0, -0.01, m);
+        let ntc_indices = vec![0, 3, 5];
+        let alpha = 0.1;
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
+        assert_eq!(fdr.threshold(), 0.0);
     }
 }
