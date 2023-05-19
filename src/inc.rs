@@ -18,6 +18,7 @@ use ndarray::Array1;
 /// * `token` - A token to identify the negative control genes
 /// * `n_pseudo` - The number of pseudo genes to generate
 /// * `s_pseudo` - The number of guides to sample for each pseudo gene
+/// * `n_draws` - The number of draws to use for the INC algorithm
 /// * `alpha` - The significance level threshold for the INC algorithm
 /// * `alternative` - The alternative hypothesis for the Mann-Whitney U test
 /// * `continuity` - Whether to use continuity correction in the Mann-Whitney U test
@@ -31,6 +32,7 @@ pub struct Inc<'a> {
     token: &'a str,
     n_pseudo: usize,
     s_pseudo: usize,
+    n_draws: usize,
     alpha: f64,
     alternative: Alternative,
     continuity: bool,
@@ -46,6 +48,7 @@ impl<'a> Inc<'a> {
         token: &'a str,
         n_pseudo: usize,
         s_pseudo: usize,
+        n_draws: usize,
         alpha: f64,
         alternative: Alternative,
         continuity: bool,
@@ -59,6 +62,7 @@ impl<'a> Inc<'a> {
             token,
             n_pseudo,
             s_pseudo,
+            n_draws,
             alpha,
             alternative,
             continuity,
@@ -87,10 +91,11 @@ impl<'a> Inc<'a> {
             self.continuity,
         );
 
+        // run the rank test on multiple instantiations of pseudo genes
         let (matrix_pvalues, matrix_logfc) = pseudo_rank_test_matrix(
             self.n_pseudo,
             self.s_pseudo,
-            500,
+            self.n_draws,
             &ntc_pvalues,
             &ntc_logfcs,
             self.alternative,
@@ -100,7 +105,6 @@ impl<'a> Inc<'a> {
 
         // reconstruct the gene names
         let gene_names = reconstruct_names(encoding.map(), ntc_index);
-        // let pseudo_names = build_pseudo_names(self.n_pseudo);
 
         // collect the gene fold changes
         let gene_logfc = gene_names
@@ -111,7 +115,6 @@ impl<'a> Inc<'a> {
 
         Ok(IncResult::new(
             gene_names,
-            // pseudo_names,
             mwu_scores,
             mwu_pvalues,
             gene_logfc,
