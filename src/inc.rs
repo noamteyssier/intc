@@ -2,7 +2,7 @@ use crate::{
     encode::EncodeIndex,
     fdr::Direction,
     mwu::Alternative,
-    rank_test::{pseudo_rank_test, rank_test},
+    rank_test::{pseudo_rank_test, rank_test, pseudo_rank_test_fast, pseudo_rank_test_matrix},
     result::IncResult,
     utils::{
         aggregate_fold_changes, build_pseudo_names, reconstruct_names, select_values,
@@ -76,20 +76,31 @@ impl<'a> Inc<'a> {
             self.continuity,
         );
 
-        // run the rank test on pseudo genes
-        let (pseudo_scores, pseudo_pvalues, pseudo_logfc) = pseudo_rank_test(
-            self.n_pseudo,
-            self.s_pseudo,
-            &ntc_pvalues,
-            &ntc_logfcs,
-            self.alternative,
-            self.continuity,
-            self.seed,
+        // // run the rank test on pseudo genes
+        // let (pseudo_pvalues, pseudo_logfc) = pseudo_rank_test_fast(
+        //     self.n_pseudo,
+        //     self.s_pseudo,
+        //     &ntc_pvalues,
+        //     &ntc_logfcs,
+        //     self.alternative,
+        //     self.continuity,
+        //     self.seed,
+        // );
+
+        let (matrix_pvalues, matrix_logfc) = pseudo_rank_test_matrix(
+            self.n_pseudo, 
+            self.s_pseudo, 
+            500, 
+            &ntc_pvalues, 
+            &ntc_logfcs, 
+            self.alternative, 
+            self.continuity, 
+            self.seed
         );
 
         // reconstruct the gene names
         let gene_names = reconstruct_names(encoding.map(), ntc_index);
-        let pseudo_names = build_pseudo_names(self.n_pseudo);
+        // let pseudo_names = build_pseudo_names(self.n_pseudo);
 
         // collect the gene fold changes
         let gene_logfc = gene_names
