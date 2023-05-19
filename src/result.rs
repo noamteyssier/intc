@@ -13,7 +13,6 @@ pub struct IncResult {
 impl IncResult {
     pub fn new(
         genes: Vec<String>,
-        // pseudo_genes: Vec<String>,
         u_scores: Vec<f64>,
         u_pvalues: Vec<f64>,
         logfc: Vec<f64>,
@@ -22,16 +21,9 @@ impl IncResult {
         alpha: f64,
         use_product: Option<Direction>,
     ) -> Self {
-        // let n_pseudo = pseudo_genes.len();
-        // let genes = vec![genes, pseudo_genes].concat();
-        // let u_scores = Array1::from_vec(vec![gene_scores, pseudo_scores].concat());
-        // let u_pvalues = Array1::from_vec(vec![gene_pvalues, pseudo_pvalues].concat());
-        // let logfc = Array1::from_vec(vec![gene_logfc, pseudo_logfc].concat());
         let u_scores = Array1::from_vec(u_scores);
         let u_pvalues = Array1::from_vec(u_pvalues);
         let logfc = Array1::from_vec(logfc);
-
-        // let ntc_indices = Self::create_ntc_indices(n_pseudo, genes.len());
         let fdr = Fdr::new(&u_pvalues, &logfc, &matrix_pvalues, &matrix_logfc, alpha, use_product).fit();
         Self {
             genes,
@@ -40,12 +32,6 @@ impl IncResult {
             logfc,
             fdr,
         }
-    }
-
-    /// Create the indices for the non-targeting control genes by
-    /// taking the indices of the last n pseudogenes
-    fn create_ntc_indices(n_pseudo: usize, n_total: usize) -> Vec<usize> {
-        (n_total - n_pseudo..n_total).collect::<Vec<usize>>()
     }
 
     /// Get the genes
