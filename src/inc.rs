@@ -87,17 +87,6 @@ impl<'a> Inc<'a> {
             self.continuity,
         );
 
-        // // run the rank test on pseudo genes
-        // let (pseudo_pvalues, pseudo_logfc) = pseudo_rank_test_fast(
-        //     self.n_pseudo,
-        //     self.s_pseudo,
-        //     &ntc_pvalues,
-        //     &ntc_logfcs,
-        //     self.alternative,
-        //     self.continuity,
-        //     self.seed,
-        // );
-
         let (matrix_pvalues, matrix_logfc) = pseudo_rank_test_matrix(
             self.n_pseudo,
             self.s_pseudo,
