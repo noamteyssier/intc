@@ -2,7 +2,7 @@ use crate::{
     mwu::{mann_whitney_u, Alternative},
     utils::select_values,
 };
-use ndarray::{s, Array1, Array2, Axis};
+use ndarray::{Array1, Array2, Axis, Zip};
 use ndarray_rand::{
     rand::{rngs::StdRng, SeedableRng},
     rand_distr::Uniform,
@@ -78,9 +78,16 @@ pub fn pseudo_rank_test_matrix(
 ) -> (Array2<f64>, Array2<f64>) {
     let mut pseudo_pvalues = Array2::zeros((n_tests, n_genes));
     let mut pseudo_logfc = Array2::zeros((n_tests, n_genes));
+    let binding = Array1::range(0.0, n_tests as f64, 1.0)
+        .insert_axis(Axis(1));
+    let array_idx = binding
+        .broadcast((n_tests, 1))
+        .unwrap();
 
-    (0..n_tests)
-        .map(|idx| {
+    Zip::from(pseudo_pvalues.rows_mut())
+        .and(pseudo_logfc.rows_mut())
+        .and(array_idx.rows())
+        .par_for_each(|mut pvalues, mut logfcs, idx| {
             let (pseudo_pvalues, pseudo_logfcs) = pseudo_rank_test(
                 n_genes,
                 s_pseudo,
@@ -88,17 +95,10 @@ pub fn pseudo_rank_test_matrix(
                 ntc_logfcs,
                 alternative,
                 continuity,
-                seed + idx as u64,
+                seed + idx[0] as u64,
             );
-            (idx, pseudo_pvalues, pseudo_logfcs)
-        })
-        .for_each(|(idx, pvalues, logfcs)| {
-            pseudo_logfc
-                .slice_mut(s![idx, ..])
-                .zip_mut_with(&logfcs, |x, &y| *x += y);
-            pseudo_pvalues
-                .slice_mut(s![idx, ..])
-                .zip_mut_with(&pvalues, |x, &y| *x += y);
+            pvalues += &pseudo_pvalues;
+            logfcs += &pseudo_logfcs;
         });
 
     (pseudo_pvalues, pseudo_logfc)
