@@ -115,9 +115,9 @@ impl<'a> Inc<'a> {
 
         Ok(IncResult::new(
             gene_names,
-            mwu_scores,
-            mwu_pvalues,
-            gene_logfc,
+            Array1::from_vec(mwu_scores),
+            Array1::from_vec(mwu_pvalues),
+            Array1::from_vec(gene_logfc),
             matrix_pvalues,
             matrix_logfc,
             self.alpha,
