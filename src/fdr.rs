@@ -138,7 +138,12 @@ impl<'a> Fdr<'a> {
         let boolvec = Self::build_typevec(real.len(), fake.len());
         let allvec = Self::concatenate_values(real, fake);
 
-        let order = argsort(&allvec, true);
+        let ascending = if let Some(Direction::Greater) = self.use_product {
+            false
+        } else {
+            true
+        };
+        let order = argsort(&allvec, ascending);
         let reorder = argsort_vec(&order);
 
         let sorted_boolvec = boolvec.select(Axis(0), &order);
@@ -148,15 +153,15 @@ impl<'a> Fdr<'a> {
         let threshold =
             Self::calculate_threshold(&sorted_allvec, &fdr, self.alpha, self.use_product);
         let unsorted_fdr = fdr.select(Axis(0), &reorder);
-        let unsorted_fdr = unsorted_fdr.slice_move(s![..=real.len()]);
+        let unsorted_fdr = unsorted_fdr.slice_move(s![..real.len()]);
 
         (unsorted_fdr, threshold)
     }
 
     /// Fit the FDR
     pub fn fit(&self) -> FdrResult {
-        let mut fdr_matrix = Array2::zeros(self.matrix_pvalues.dim());
-        let mut threshold_arr = Array1::zeros(self.matrix_pvalues.dim().0);
+        let mut fdr_matrix = Array2::zeros((self.n_draws, self.pvalues.len()));
+        let mut threshold_arr = Array1::zeros(self.n_draws);
 
         if let Some(_) = self.use_product {
             (0..self.n_draws).for_each(|i| {
@@ -189,46 +194,54 @@ impl<'a> Fdr<'a> {
 
 #[cfg(test)]
 mod testing {
-    use crate::fdr::{Direction, EPSILON};
-
-    use super::Fdr;
-    use ndarray::{array, Array1};
+    use super::*;
+    use ndarray::array;
 
     #[test]
     fn test_fdr() {
         let pvalues = array![0.1, 0.2, 0.3];
         let logfc = array![0.1, 0.2, 0.3];
-        let ntc_indices = vec![1];
+        let ntc_pvalues = array![[0.15, 0.4, 0.5], [0.15, 0.4, 0.5]];
+        let ntc_logfc = array![[2.0, 1.5, 1.2], [2.2, 1.7, 1.3]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
-        assert_eq!(fdr.fdr(), array![0.0, 0.5, 1. / 3.]);
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
+        assert_eq!(fdr.fdr(), array![0.0, 1. / 3., 1. / 4.]);
+    }
+
+    #[test]
+    fn test_fdr_average() {
+        let pvalues = array![0.1, 0.2, 0.3];
+        let logfc = array![0.1, 0.2, 0.3];
+        let ntc_pvalues = array![[0.15, 0.4, 0.5], [0.25, 0.4, 0.5]];
+        let ntc_logfc = array![[2.0, 1.5, 1.2], [2.2, 1.7, 1.3]];
+        let alpha = 0.1;
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
+        assert_eq!(fdr.fdr(), array![0.0, (1. / 3.)/2., 1. / 4.]);
     }
 
     #[test]
     fn test_fdr_unsorted() {
         let pvalues = array![0.2, 0.1, 0.3];
         let logfc = array![0.1, 0.2, 0.3];
-        let ntc_indices = vec![1];
+        let ntc_pvalues = array![[0.15, 0.4, 0.5], [0.15, 0.4, 0.5]];
+        let ntc_logfc = array![[2.0, 1.5, 1.2], [2.2, 1.7, 1.3]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
-        assert_eq!(fdr.fdr(), array![0.5, 1.0, 1. / 3.]);
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
+        assert_eq!(fdr.fdr(), array![1./3., 0.0, 1. / 4.]);
     }
 
     #[test]
     fn test_fdr_unsorted_larger() {
         let pvalues = array![0.5, 0.1, 0.3, 0.4, 0.2, 0.6];
         let logfc = array![0.5, 0.1, 0.3, 0.4, 0.2, 0.6];
-        let ntc_indices = vec![3, 5];
+        let ntc_pvalues = array![[0.15, 0.4, 0.5], [0.15, 0.4, 0.5]];
+        let ntc_logfc = array![[2.0, 1.5, 1.2], [2.2, 1.7, 1.3]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
-        assert_eq!(fdr.fdr(), array![0.2, 0.0, 0.0, 0.25, 0.0, 1. / 3.]);
-    }
-
-    #[test]
-    fn test_ntc_mask() {
-        let ntc_indices = vec![1];
-        let mask = Fdr::ntc_mask(&ntc_indices, 3);
-        assert_eq!(mask, array![0.0, 1.0, 0.0]);
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
+        assert_eq!(
+            fdr.fdr(),
+            array![0.2857142857142857, 0.0, 0.25, 0.2, 0.3333333333333333, 0.3333333333333333]
+        );
     }
 
     #[test]
@@ -236,75 +249,86 @@ mod testing {
         let m = 10;
         let pvalues = Array1::linspace(0.0, 1.0, m);
         let logfc = Array1::linspace(0.0, 1.0, m);
-        let ntc_indices = vec![4, 6, 9];
+        let ntc_pvalues = array![[0.15, 0.35], [0.15, 0.35]];
+        let ntc_logfc = array![[0.15, 0.35], [0.15, 0.35]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
-        assert_eq!(fdr.threshold(), 1. / 3.);
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
+        assert_eq!(fdr.threshold(), 0.15);
     }
 
     #[test]
-    fn test_fdr_threshold_direction_lt_saturated() {
+    fn test_fdr_threshold_average() {
         let m = 10;
-        let pvalues = Array1::linspace(0.1, 1.0, m);
-        let logfc = Array1::linspace(-1.0, -0.01, m);
-        let ntc_indices = vec![0, 3, 5];
+        let pvalues = Array1::linspace(0.0, 1.0, m);
+        let logfc = Array1::linspace(0.0, 1.0, m);
+        let ntc_pvalues = array![[0.15, 0.35], [0.17, 0.35]];
+        let ntc_logfc = array![[0.15, 0.35], [0.15, 0.35]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, Some(Direction::Less)).fit();
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
+        assert_eq!(fdr.threshold(), 0.16);
+    }
+
+    #[test]
+    fn test_fdr_threshold_dir_lt_saturated() {
+        let m = 10;
+        let pvalues = Array1::linspace(0.15, 1.0, m);
+        let logfc = Array1::linspace(-1.0, -0.01, m);
+        let ntc_pvalues = array![[0.1, 0.3], [0.1, 0.3]];
+        let ntc_logfc = array![[-1., -0.2], [-1., -0.2]];
+        let alpha = 0.1;
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, Some(Direction::Less)).fit();
         assert_eq!(fdr.threshold(), -(0.1f64).log10() * -1.0 - EPSILON);
     }
 
     #[test]
-    fn test_fdr_threshold_direction_gt_saturated() {
+    fn test_fdr_threshold_dir_gt_saturated() {
         let m = 10;
-        let pvalues = Array1::linspace(0.1, 1.0, m);
+        let pvalues = Array1::linspace(0.15, 1.0, m);
         let logfc = Array1::linspace(0.1, 1.0, m)
             .iter()
             .rev()
             .cloned()
-            .collect::<Array1<f64>>();
-        let ntc_indices = vec![0, 3, 5];
+            .collect();
+        let ntc_pvalues = array![[0.1, 0.3], [0.1, 0.3]];
+        let ntc_logfc = array![[1., 0.2], [1., 0.2]];
         let alpha = 0.1;
-        let fdr = Fdr::new(
-            &pvalues,
-            &logfc,
-            &ntc_indices,
-            alpha,
-            Some(Direction::Greater),
-        )
-        .fit();
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, Some(Direction::Greater)).fit();
         assert_eq!(fdr.threshold(), -(0.1f64).log10() * 1.0 + EPSILON);
     }
 
     #[test]
-    fn test_fdr_threshold_saturated() {
+    fn test_fdr_threshold_dir_saturated() {
         let m = 10;
-        let pvalues = Array1::linspace(0.1, 1.0, m);
+        let pvalues = Array1::linspace(0.15, 1.0, m);
         let logfc = Array1::linspace(-1.0, -0.01, m);
-        let ntc_indices = vec![0, 3, 5];
+        let ntc_pvalues = array![[0.1, 0.3], [0.1, 0.3]];
+        let ntc_logfc = array![[-1., -0.2], [-1., -0.2]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
-        assert_eq!(fdr.threshold(), 0.1f64 - EPSILON);
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
+        assert_eq!(fdr.threshold(), 0.1 - EPSILON);
     }
 
     #[test]
-    fn test_fdr_threshold_saturated_epsilon() {
+    fn test_fdr_threshold_dir_saturated_epsilon() {
         let m = 10;
-        let pvalues = Array1::linspace(EPSILON, 1.0, m);
+        let pvalues = Array1::linspace(0.15, 1.0, m);
         let logfc = Array1::linspace(-1.0, -0.01, m);
-        let ntc_indices = vec![0, 3, 5];
+        let ntc_pvalues = array![[EPSILON, 0.3], [EPSILON, 0.3]];
+        let ntc_logfc = array![[-1., -0.2], [-1., -0.2]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
-        assert_eq!(fdr.threshold(), 0.0);
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
+        assert_eq!(fdr.threshold(), 0.);
     }
 
     #[test]
-    fn test_fdr_threshold_saturated_nonzero() {
+    fn test_fdr_threshold_dir_saturated_nonzero() {
         let m = 10;
-        let pvalues = Array1::linspace(f64::EPSILON, 1.0, m);
+        let pvalues = Array1::linspace(0.15, 1.0, m);
         let logfc = Array1::linspace(-1.0, -0.01, m);
-        let ntc_indices = vec![0, 3, 5];
+        let ntc_pvalues = array![[f64::EPSILON, 0.3], [f64::EPSILON, 0.3]];
+        let ntc_logfc = array![[-1., -0.2], [-1., -0.2]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_indices, alpha, None).fit();
-        assert_eq!(fdr.threshold(), 0.0);
+        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
+        assert_eq!(fdr.threshold(), 0.);
     }
 }
