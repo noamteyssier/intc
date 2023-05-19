@@ -24,7 +24,15 @@ impl IncResult {
         let u_scores = Array1::from_vec(u_scores);
         let u_pvalues = Array1::from_vec(u_pvalues);
         let logfc = Array1::from_vec(logfc);
-        let fdr = Fdr::new(&u_pvalues, &logfc, &matrix_pvalues, &matrix_logfc, alpha, use_product).fit();
+        let fdr = Fdr::new(
+            &u_pvalues,
+            &logfc,
+            &matrix_pvalues,
+            &matrix_logfc,
+            alpha,
+            use_product,
+        )
+        .fit();
         Self {
             genes,
             u_scores,

@@ -2,7 +2,7 @@ use crate::{
     mwu::{mann_whitney_u, Alternative},
     utils::select_values,
 };
-use ndarray::{Array1, Axis, Array2, s};
+use ndarray::{s, Array1, Array2, Axis};
 use ndarray_rand::{
     rand::{rngs::StdRng, SeedableRng},
     rand_distr::Uniform,
@@ -38,7 +38,6 @@ pub fn pseudo_rank_test_fast(
     continuity: bool,
     seed: u64,
 ) -> (Array1<f64>, Array1<f64>) {
-    
     let mut pseudo_pvalues = Array1::zeros(n_pseudo);
     let mut pseudo_logfc = Array1::zeros(n_pseudo);
 
@@ -57,7 +56,8 @@ pub fn pseudo_rank_test_fast(
         .enumerate()
         // calculate the U, p-values, and aggregate logfc for each pseudo gene
         .for_each(|(idx, (ig_pvalues, ig_logfcs))| {
-            let (_score, pvalue) = mann_whitney_u(&ig_pvalues, ntc_pvalues, alternative, continuity);
+            let (_score, pvalue) =
+                mann_whitney_u(&ig_pvalues, ntc_pvalues, alternative, continuity);
             let logfc = ig_logfcs.mean().unwrap_or(0.0);
             pseudo_pvalues[idx] = pvalue;
             pseudo_logfc[idx] = logfc;

@@ -2,12 +2,9 @@ use crate::{
     encode::EncodeIndex,
     fdr::Direction,
     mwu::Alternative,
-    rank_test::{rank_test, pseudo_rank_test_matrix},
+    rank_test::{pseudo_rank_test_matrix, rank_test},
     result::IncResult,
-    utils::{
-        aggregate_fold_changes, reconstruct_names, select_values,
-        validate_token,
-    },
+    utils::{aggregate_fold_changes, reconstruct_names, select_values, validate_token},
 };
 use anyhow::Result;
 use ndarray::Array1;
@@ -102,14 +99,14 @@ impl<'a> Inc<'a> {
         // );
 
         let (matrix_pvalues, matrix_logfc) = pseudo_rank_test_matrix(
-            self.n_pseudo, 
-            self.s_pseudo, 
-            500, 
-            &ntc_pvalues, 
-            &ntc_logfcs, 
-            self.alternative, 
-            self.continuity, 
-            self.seed
+            self.n_pseudo,
+            self.s_pseudo,
+            500,
+            &ntc_pvalues,
+            &ntc_logfcs,
+            self.alternative,
+            self.continuity,
+            self.seed,
         );
 
         // reconstruct the gene names

@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use hashbrown::HashMap;
-use ndarray::{Array1, Axis, Array2};
+use ndarray::{Array1, Array2, Axis};
 use std::hash::Hash;
 
 /// Validates the provided token is found one and only once in the gene set
@@ -71,7 +71,10 @@ pub fn diagonal_product(log2_fold_changes: &Array1<f64>, pvalues: &Array1<f64>) 
 }
 
 /// Calculates the diagonal product of fold changes and pvalues in a 2D elementwise context
-pub fn diagonal_product_matrix(log2_fold_changes: &Array2<f64>, pvalues: &Array2<f64>) -> Array2<f64> {
+pub fn diagonal_product_matrix(
+    log2_fold_changes: &Array2<f64>,
+    pvalues: &Array2<f64>,
+) -> Array2<f64> {
     log2_fold_changes * pvalues.mapv(|x| -x.log10())
 }
 
