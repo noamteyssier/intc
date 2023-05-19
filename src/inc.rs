@@ -125,13 +125,12 @@ impl<'a> Inc<'a> {
 
         Ok(IncResult::new(
             gene_names,
-            pseudo_names,
+            // pseudo_names,
             mwu_scores,
             mwu_pvalues,
             gene_logfc,
-            pseudo_scores,
-            pseudo_pvalues,
-            pseudo_logfc,
+            matrix_pvalues,
+            matrix_logfc,
             self.alpha,
             self.use_product,
         ))
