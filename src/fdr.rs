@@ -1,7 +1,7 @@
 use std::ops::Div;
 
-use crate::utils::{argsort, argsort_vec, diagonal_product};
-use ndarray::{Array1, Axis, Array2};
+use crate::utils::{argsort, argsort_vec, diagonal_product, diagonal_product_matrix, cumulative_sum};
+use ndarray::{Array1, Axis, Array2, ArrayView1, s};
 
 const EPSILON: f64 = 1e-10;
 
@@ -45,11 +45,12 @@ impl FdrResult {
 /// False Discovery Rate
 pub struct Fdr<'a> {
     pvalues: &'a Array1<f64>,
-    product: Array1<f64>,
+    product: Option<Array1<f64>>,
     matrix_pvalues: &'a Array2<f64>,
-    matrix_logfc: &'a Array2<f64>,
+    matrix_product: Option<Array2<f64>>,
     alpha: f64,
     use_product: Option<Direction>,
+    n_draws: usize,
 }
 
 impl<'a> Fdr<'a> {
@@ -62,13 +63,24 @@ impl<'a> Fdr<'a> {
         alpha: f64,
         use_product: Option<Direction>,
     ) -> Self {
+        let product = if use_product.is_some() {
+            Some(diagonal_product(logfc, pvalues))
+        } else {
+            None
+        };
+        let matrix_product = if use_product.is_some() {
+            Some(diagonal_product_matrix(&matrix_logfc, &matrix_pvalues))
+        } else {
+            None
+        };
         Self {
             pvalues,
             matrix_pvalues,
-            matrix_logfc,
             alpha,
             use_product,
-            product: diagonal_product(logfc, pvalues),
+            product,
+            matrix_product,
+            n_draws: matrix_pvalues.nrows(),
         }
     }
 
@@ -81,7 +93,7 @@ impl<'a> Fdr<'a> {
     }
 
     /// Concatenates two vectors
-    fn concatenate_values(real: &Array1<f64>, fake: &Array1<f64>) -> Array1<f64> {
+    fn concatenate_values(real: &Array1<f64>, fake: &ArrayView1<f64>) -> Array1<f64> {
         real
             .iter()
             .chain(fake.iter())
@@ -93,7 +105,7 @@ impl<'a> Fdr<'a> {
     /// assumes the positive values are the fake ones.
     fn calculate_fdr(n: usize, sorted_boolvec: &Array1<f64>) -> Array1<f64> {
         let ranks = Array1::range(1.0, n as f64 + 1.0, 1.0);
-        let cumulative_sum = sorted_boolvec.fold(0.0, |acc, x| acc + x);
+        let cumulative_sum = cumulative_sum(sorted_boolvec);
         let fdr = cumulative_sum.div(&ranks);
         fdr
     }
@@ -122,8 +134,8 @@ impl<'a> Fdr<'a> {
     }
 
     /// Calculates the empirical fdr for a given set of p-values and logfc
-    fn empirical_fdr(&self, real: &Array1<f64>, fake: &Array1<f64>) -> (Array1<f64>, f64) {
-
+    fn empirical_fdr(&self, real: &Array1<f64>, fake: &ArrayView1<f64>) -> (Array1<f64>, f64) {
+        
         let boolvec = Self::build_typevec(real.len(), fake.len());
         let allvec = Self::concatenate_values(real, fake);
 
@@ -135,88 +147,44 @@ impl<'a> Fdr<'a> {
 
         let fdr = Self::calculate_fdr(allvec.len(), &sorted_boolvec);
         let threshold = Self::calculate_threshold(&sorted_allvec, &fdr, self.alpha, self.use_product);
-
-        // let sorted_typevec = typevec.select(Axis(0), &order);
-
-        
         let unsorted_fdr = fdr.select(Axis(0), &reorder);
+        let unsorted_fdr = unsorted_fdr.slice_move(s![..=real.len()]);
 
         (unsorted_fdr, threshold)
-
     }
 
     /// Fit the FDR
     pub fn fit(&self) -> FdrResult {
 
-        let values = match self.use_product {
-            Some(Direction::Less) => &self.product,
-            Some(Direction::Greater) => &self.product,
-            None => &self.pvalues,
-        };
-        let fdr_matrix = Array2::zeros(self.matrix_pvalues.dim());
-        let threshold_arr = Array1::zeros(self.matrix_pvalues.dim().0);
+        let mut fdr_matrix = Array2::zeros(self.matrix_pvalues.dim());
+        let mut threshold_arr = Array1::zeros(self.matrix_pvalues.dim().0);
 
-        (0..threshold_arr.len())
-            .for_each(|idx| {
-                let (fdr, threshold) = self.empirical_fdr(&values, &self.matrix_pvalues.select(Axis(0), &[idx, ..]));
+        if let Some(_) = self.use_product {
+            (0..self.n_draws).for_each(|i| {
+                let (fdr, threshold) = self.empirical_fdr(
+                    &self.product.as_ref().unwrap(), 
+                    &self.matrix_product.as_ref().unwrap().row(i)
+                );
+                fdr_matrix.row_mut(i).assign(&fdr);
+                threshold_arr[i] = threshold;
+            })
+        } else {
+            (0..self.n_draws).for_each(|i| {
+                let (fdr, threshold) = self.empirical_fdr(
+                    &self.pvalues, 
+                    &self.matrix_pvalues.row(i)
+                );
+                fdr_matrix.row_mut(i).assign(&fdr);
+                threshold_arr[i] = threshold;
             });
+        }
 
-        // let order = match self.use_product {
-        //     Some(Direction::Less) => argsort(&self.product, true),
-        //     Some(Direction::Greater) => argsort(&self.product, false),
-        //     None => argsort(&self.pvalues, true),
-        // };
-        // let reorder = argsort_vec(&order);
-        // let is_ntc = Self::ntc_mask(self.ntc_indices, self.pvalues.len());
-        // let sorted_values = values.select(Axis(0), &order);
-        // let sorted_ntc = is_ntc.select(Axis(0), &order);
-        // let sorted_fdr = Self::empirical_fdr(&sorted_ntc);
-        // let threshold = Self::threshold(&sorted_values, &sorted_fdr, self.alpha, self.use_product);
-        // let unsorted_fdr = sorted_fdr.select(Axis(0), &reorder);
+        let unsorted_fdr = fdr_matrix.mean_axis(Axis(0)).expect("Could not calculate INTC mean fdr");
+        let threshold = threshold_arr.mean().expect("Could not calculate INTC threshold");
+
         FdrResult::new(unsorted_fdr, threshold)
     }
 
-    /// Create a mask for the non-target controls
-    fn ntc_mask(ntc_indices: &[usize], n_genes: usize) -> Array1<f64> {
-        let mut mask = Array1::zeros(n_genes);
-        for idx in ntc_indices {
-            mask[*idx] = 1.0;
-        }
-        mask
-    }
-
-    // /// Calculate the empirical FDR
-    // fn empirical_fdr(sorted_ntc: &Array1<f64>) -> Array1<f64> {
-    //     let mut ntc_count = 0;
-    //     sorted_ntc
-    //         .iter()
-    //         .enumerate()
-    //         .map(|(idx, is_ntc)| {
-    //             if *is_ntc == 1.0 {
-    //                 ntc_count += 1;
-    //             }
-    //             ntc_count as f64 / (idx + 1) as f64
-    //         })
-    //         .collect()
-    // }
-
-    /// Calculate the p-value threshold
-    fn threshold(values: &Array1<f64>, fdr: &Array1<f64>, alpha: f64, use_product: Option<Direction>) -> f64 {
-        let fdr_pval = fdr
-            .iter()
-            .zip(values.iter())
-            .take_while(|(fdr, _value)| *fdr <= &alpha)
-            .reduce(|_x, y| y);
-        if let Some(fp) = fdr_pval {
-            *fp.1
-        } else {
-            match use_product {
-                Some(Direction::Greater) => values.fold(0.0, |acc: f64, x| acc.max(*x)) + EPSILON,
-                Some(Direction::Less) => values.fold(1.0, |acc: f64, x| acc.min(*x)) - EPSILON,
-                _ => (values.fold(1.0, |acc: f64, x| acc.min(*x)) - EPSILON).max(0.0),
-            }
-        }
-    }
 }
 
 #[cfg(test)]
