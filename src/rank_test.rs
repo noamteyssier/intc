@@ -78,11 +78,8 @@ pub fn pseudo_rank_test_matrix(
 ) -> (Array2<f64>, Array2<f64>) {
     let mut pseudo_pvalues = Array2::zeros((n_tests, n_genes));
     let mut pseudo_logfc = Array2::zeros((n_tests, n_genes));
-    let binding = Array1::range(0.0, n_tests as f64, 1.0)
-        .insert_axis(Axis(1));
-    let array_idx = binding
-        .broadcast((n_tests, 1))
-        .unwrap();
+    let binding = Array1::range(0.0, n_tests as f64, 1.0).insert_axis(Axis(1));
+    let array_idx = binding.broadcast((n_tests, 1)).unwrap();
 
     Zip::from(pseudo_pvalues.rows_mut())
         .and(pseudo_logfc.rows_mut())
