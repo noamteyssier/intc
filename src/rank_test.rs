@@ -135,19 +135,20 @@ mod testing {
     fn test_pseudo_rank_test() {
         let n_pseudo = 2;
         let s_pseudo = 3;
-        let ntc_pvalues = array![0.7, 0.7, 0.7, 0.7, 0.7, 0.7];
-        let ntc_logfcs = array![0.7, 0.7, 0.7, 0.7, 0.7, 0.7];
+        let ntc_pvalues = array![0.7, 0.7, 0.7, 0.7, 0.7];
+        let ntc_logfc = array![0.7, 0.7, 0.7, 0.7, 0.7];
         let alternative = Alternative::TwoSided;
         let seed = 0;
-        let (_u, p, _l) = super::pseudo_rank_test(
+        let (pv, lfc) = super::pseudo_rank_test(
             n_pseudo,
             s_pseudo,
             &ntc_pvalues,
-            &ntc_logfcs,
+            &ntc_logfc,
             alternative,
             false,
             seed,
         );
-        assert_eq!(p, vec![1.0, 1.0]);
+        assert_eq!(pv, array![1.0, 1.0]);
+        lfc.iter().for_each(|x| assert!((*x - 0.7) < 1e-6));
     }
 }
