@@ -2,10 +2,10 @@ use crate::{
     encode::EncodeIndex,
     fdr::Direction,
     mwu::Alternative,
-    rank_test::{pseudo_rank_test, rank_test, pseudo_rank_test_fast, pseudo_rank_test_matrix},
+    rank_test::{rank_test, pseudo_rank_test_matrix},
     result::IncResult,
     utils::{
-        aggregate_fold_changes, build_pseudo_names, reconstruct_names, select_values,
+        aggregate_fold_changes, reconstruct_names, select_values,
         validate_token,
     },
 };
