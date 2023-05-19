@@ -103,6 +103,5 @@ mod testing {
         assert_eq!(result.logfc(), &logfc);
         assert_eq!(result.fdr().len(), 6);
         assert_eq!(result.threshold(), 0.);
-
     }
 }

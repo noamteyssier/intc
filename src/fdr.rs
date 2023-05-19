@@ -216,7 +216,7 @@ mod testing {
         let ntc_logfc = array![[2.0, 1.5, 1.2], [2.2, 1.7, 1.3]];
         let alpha = 0.1;
         let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
-        assert_eq!(fdr.fdr(), array![0.0, (1. / 3.)/2., 1. / 4.]);
+        assert_eq!(fdr.fdr(), array![0.0, (1. / 3.) / 2., 1. / 4.]);
     }
 
     #[test]
@@ -227,7 +227,7 @@ mod testing {
         let ntc_logfc = array![[2.0, 1.5, 1.2], [2.2, 1.7, 1.3]];
         let alpha = 0.1;
         let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
-        assert_eq!(fdr.fdr(), array![1./3., 0.0, 1. / 4.]);
+        assert_eq!(fdr.fdr(), array![1. / 3., 0.0, 1. / 4.]);
     }
 
     #[test]
@@ -240,7 +240,14 @@ mod testing {
         let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, None).fit();
         assert_eq!(
             fdr.fdr(),
-            array![0.2857142857142857, 0.0, 0.25, 0.2, 0.3333333333333333, 0.3333333333333333]
+            array![
+                0.2857142857142857,
+                0.0,
+                0.25,
+                0.2,
+                0.3333333333333333,
+                0.3333333333333333
+            ]
         );
     }
 
@@ -276,7 +283,15 @@ mod testing {
         let ntc_pvalues = array![[0.1, 0.3], [0.1, 0.3]];
         let ntc_logfc = array![[-1., -0.2], [-1., -0.2]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, Some(Direction::Less)).fit();
+        let fdr = Fdr::new(
+            &pvalues,
+            &logfc,
+            &ntc_pvalues,
+            &ntc_logfc,
+            alpha,
+            Some(Direction::Less),
+        )
+        .fit();
         assert_eq!(fdr.threshold(), -(0.1f64).log10() * -1.0 - EPSILON);
     }
 
@@ -292,7 +307,15 @@ mod testing {
         let ntc_pvalues = array![[0.1, 0.3], [0.1, 0.3]];
         let ntc_logfc = array![[1., 0.2], [1., 0.2]];
         let alpha = 0.1;
-        let fdr = Fdr::new(&pvalues, &logfc, &ntc_pvalues, &ntc_logfc, alpha, Some(Direction::Greater)).fit();
+        let fdr = Fdr::new(
+            &pvalues,
+            &logfc,
+            &ntc_pvalues,
+            &ntc_logfc,
+            alpha,
+            Some(Direction::Greater),
+        )
+        .fit();
         assert_eq!(fdr.threshold(), -(0.1f64).log10() * 1.0 + EPSILON);
     }
 
