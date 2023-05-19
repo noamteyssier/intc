@@ -29,7 +29,7 @@ pub fn rank_test(
 
 /// Performs a rank test for pseudo genes created from the non-targeting controls
 /// Returns a tuple of vectors containing the U and p-values for each pseudogene.
-pub fn pseudo_rank_test_fast(
+pub fn pseudo_rank_test(
     n_pseudo: usize,
     s_pseudo: usize,
     ntc_pvalues: &Array1<f64>,
@@ -81,7 +81,7 @@ pub fn pseudo_rank_test_matrix(
 
     (0..n_tests)
         .map(|idx| {
-            let (pseudo_pvalues, pseudo_logfcs) = pseudo_rank_test_fast(
+            let (pseudo_pvalues, pseudo_logfcs) = pseudo_rank_test(
                 n_genes,
                 s_pseudo,
                 ntc_pvalues,
