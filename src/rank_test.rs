@@ -2,7 +2,7 @@ use crate::{
     mwu::{mann_whitney_u, Alternative},
     utils::select_values,
 };
-use ndarray::{Array1, Axis};
+use ndarray::{Array1, Axis, Array2, s};
 use ndarray_rand::{
     rand::{rngs::StdRng, SeedableRng},
     rand_distr::Uniform,
@@ -27,6 +27,44 @@ pub fn rank_test(
         .unzip()
 }
 
+/// Performs a rank test for pseudo genes created from the non-targeting controls
+/// Returns a tuple of vectors containing the U and p-values for each pseudogene.
+pub fn pseudo_rank_test_fast(
+    n_pseudo: usize,
+    s_pseudo: usize,
+    ntc_pvalues: &Array1<f64>,
+    ntc_logfcs: &Array1<f64>,
+    alternative: Alternative,
+    continuity: bool,
+    seed: u64,
+) -> (Array1<f64>, Array1<f64>) {
+    
+    let mut pseudo_pvalues = Array1::zeros(n_pseudo);
+    let mut pseudo_logfc = Array1::zeros(n_pseudo);
+
+    let num_ntc = ntc_pvalues.len();
+    let mut rng = StdRng::seed_from_u64(seed);
+
+    (0..n_pseudo)
+        // generate array of random indices considered "in" the test group
+        .map(|_| Array1::random_using(s_pseudo, Uniform::new(0, num_ntc), &mut rng))
+        // subset the pvalues and logfc to the "in" and "out" groups
+        .map(|mask| {
+            let pvalues = ntc_pvalues.select(Axis(0), &mask.as_slice().unwrap());
+            let logfcs = ntc_logfcs.select(Axis(0), &mask.as_slice().unwrap());
+            (pvalues, logfcs)
+        })
+        .enumerate()
+        // calculate the U, p-values, and aggregate logfc for each pseudo gene
+        .for_each(|(idx, (ig_pvalues, ig_logfcs))| {
+            let (score, pvalue) = mann_whitney_u(&ig_pvalues, ntc_pvalues, alternative, continuity);
+            let logfc = ig_logfcs.mean().unwrap_or(0.0);
+            pseudo_pvalues[idx] = pvalue;
+            pseudo_logfc[idx] = logfc;
+        });
+
+    (pseudo_pvalues, pseudo_logfc)
+}
 /// Performs a rank test for pseudo genes created from the non-targeting controls
 /// Returns a tuple of vectors containing the U and p-values for each pseudogene.
 pub fn pseudo_rank_test(
@@ -73,6 +111,44 @@ pub fn pseudo_rank_test(
         });
 
     (pseudo_scores, pseudo_pvalues, pseudo_logfc)
+}
+
+pub fn pseudo_rank_test_matrix(
+    n_genes: usize,
+    s_pseudo: usize,
+    n_tests: usize,
+    ntc_pvalues: &Array1<f64>,
+    ntc_logfcs: &Array1<f64>,
+    alternative: Alternative,
+    continuity: bool,
+    seed: u64,
+) -> (Array2<f64>, Array2<f64>) {
+    let mut pseudo_logfc = Array2::zeros((n_tests, n_genes));
+    let mut pseudo_pvalues = Array2::zeros((n_tests, n_genes));
+
+    (0..n_tests)
+        .map(|idx| {
+            let (pseudo_pvalues, pseudo_logfcs) = pseudo_rank_test_fast(
+                n_genes,
+                s_pseudo,
+                ntc_pvalues,
+                ntc_logfcs,
+                alternative,
+                continuity,
+                seed + idx as u64,
+            );
+            (idx, pseudo_pvalues, pseudo_logfcs)
+        })
+        .for_each(|(idx, pvalues, logfcs)| {
+            pseudo_logfc
+                .slice_mut(s![idx, ..])
+                .zip_mut_with(&logfcs, |x, &y| *x += y);
+            pseudo_pvalues
+                .slice_mut(s![idx, ..])
+                .zip_mut_with(&pvalues, |x, &y| *x += y);
+        });
+
+    (pseudo_logfc, pseudo_pvalues)
 }
 
 #[cfg(test)]
