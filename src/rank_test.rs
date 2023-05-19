@@ -57,60 +57,13 @@ pub fn pseudo_rank_test_fast(
         .enumerate()
         // calculate the U, p-values, and aggregate logfc for each pseudo gene
         .for_each(|(idx, (ig_pvalues, ig_logfcs))| {
-            let (score, pvalue) = mann_whitney_u(&ig_pvalues, ntc_pvalues, alternative, continuity);
+            let (_score, pvalue) = mann_whitney_u(&ig_pvalues, ntc_pvalues, alternative, continuity);
             let logfc = ig_logfcs.mean().unwrap_or(0.0);
             pseudo_pvalues[idx] = pvalue;
             pseudo_logfc[idx] = logfc;
         });
 
     (pseudo_pvalues, pseudo_logfc)
-}
-/// Performs a rank test for pseudo genes created from the non-targeting controls
-/// Returns a tuple of vectors containing the U and p-values for each pseudogene.
-pub fn pseudo_rank_test(
-    n_pseudo: usize,
-    s_pseudo: usize,
-    ntc_pvalues: &Array1<f64>,
-    ntc_logfcs: &Array1<f64>,
-    alternative: Alternative,
-    continuity: bool,
-    seed: u64,
-) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
-    let mut pseudo_scores = Vec::with_capacity(n_pseudo);
-    let mut pseudo_pvalues = Vec::with_capacity(n_pseudo);
-    let mut pseudo_logfc = Vec::with_capacity(n_pseudo);
-    let num_ntc = ntc_pvalues.len();
-    let mut rng = StdRng::seed_from_u64(seed);
-
-    (0..n_pseudo)
-        // generate array of random indices considered "in" the test group
-        .map(|_| Array1::random_using(s_pseudo, Uniform::new(0, num_ntc), &mut rng))
-        // generate the complement list of indices considered "out" of the test group
-        .map(|mask| {
-            let slice_mask = mask.as_slice().unwrap().to_owned();
-            let out_mask = (0..num_ntc)
-                .filter(|x| !slice_mask.contains(x))
-                .collect::<Vec<usize>>();
-            (slice_mask, out_mask)
-        })
-        // subset the pvalues and logfc to the "in" and "out" groups
-        .map(|(in_mask, out_mask)| {
-            let in_group_pvalues = ntc_pvalues.select(Axis(0), &in_mask);
-            let in_group_logfcs = ntc_logfcs.select(Axis(0), &in_mask);
-            let out_group_pvalues = ntc_pvalues.select(Axis(0), &out_mask);
-            (in_group_pvalues, in_group_logfcs, out_group_pvalues)
-        })
-        // calculate the U, p-values, and aggregate logfc for each pseudo gene
-        .for_each(|(ig_pvalues, ig_logfcs, og_pvalues)| {
-            let (score, pvalue) = mann_whitney_u(&ig_pvalues, &og_pvalues, alternative, continuity);
-            let logfc = ig_logfcs.mean().unwrap_or(0.0);
-
-            pseudo_scores.push(score);
-            pseudo_pvalues.push(pvalue);
-            pseudo_logfc.push(logfc);
-        });
-
-    (pseudo_scores, pseudo_pvalues, pseudo_logfc)
 }
 
 pub fn pseudo_rank_test_matrix(
@@ -123,8 +76,8 @@ pub fn pseudo_rank_test_matrix(
     continuity: bool,
     seed: u64,
 ) -> (Array2<f64>, Array2<f64>) {
-    let mut pseudo_logfc = Array2::zeros((n_tests, n_genes));
     let mut pseudo_pvalues = Array2::zeros((n_tests, n_genes));
+    let mut pseudo_logfc = Array2::zeros((n_tests, n_genes));
 
     (0..n_tests)
         .map(|idx| {
@@ -148,7 +101,7 @@ pub fn pseudo_rank_test_matrix(
                 .zip_mut_with(&pvalues, |x, &y| *x += y);
         });
 
-    (pseudo_logfc, pseudo_pvalues)
+    (pseudo_pvalues, pseudo_logfc)
 }
 
 #[cfg(test)]
