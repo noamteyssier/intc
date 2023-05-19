@@ -12,6 +12,20 @@ use crate::{
 use anyhow::Result;
 use ndarray::Array1;
 
+/// A struct for running the INC algorithm to aggregate p-values and fold changes
+///
+/// # Arguments
+/// * `pvalues` - A vector of p-values
+/// * `logfc` - A vector of log fold changes
+/// * `genes` - A vector of gene names
+/// * `token` - A token to identify the negative control genes
+/// * `n_pseudo` - The number of pseudo genes to generate
+/// * `s_pseudo` - The number of guides to sample for each pseudo gene
+/// * `alpha` - The significance level threshold for the INC algorithm
+/// * `alternative` - The alternative hypothesis for the Mann-Whitney U test
+/// * `continuity` - Whether to use continuity correction in the Mann-Whitney U test
+/// * `use_product` - Whether to use the product of p-values or fold changes
+/// * `seed` - A seed for the random number generator
 #[derive(Debug)]
 pub struct Inc<'a> {
     pvalues: &'a Array1<f64>,
