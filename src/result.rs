@@ -87,7 +87,9 @@ impl IncResult {
 
 #[cfg(test)]
 mod testing {
+
     use super::*;
+    use ndarray::array;
 
     #[test]
     fn test_inc_result() {
@@ -119,5 +121,44 @@ mod testing {
         assert_eq!(result.fdr().len(), 6);
         assert_eq!(result.threshold(), 0.);
         assert_eq!(result.null_stddev(), 0.);
+    }
+
+    #[test]
+    fn test_std() {
+        let genes = vec!["a", "b", "c", "d", "e", "f"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+        let u_scores = Array1::linspace(0., 1., 6);
+        let u_pvalues = Array1::linspace(0., 1., 6);
+        let logfc = Array1::linspace(0., 1., 6);
+        let matrix_pvalues = Array2::zeros((6, 6));
+        let matrix_logfc = array![
+            [ 1., 2., 3., 4., 5., 6. ],
+            [ 1., 2., 3., 4., 5., 6. ],
+            [ 1., 2., 3., 4., 5., 6. ],
+            [ 1., 2., 3., 4., 5., 6. ],
+            [ 1., 2., 3., 4., 5., 6. ],
+            [ 1., 2., 3., 4., 5., 6. ],
+        ];
+        let alpha = 0.05;
+        let use_product = None;
+        let result = IncResult::new(
+            genes,
+            u_scores.clone(),
+            u_pvalues.clone(),
+            logfc.clone(),
+            matrix_pvalues,
+            matrix_logfc,
+            alpha,
+            use_product,
+        );
+        assert_eq!(result.genes(), &["a", "b", "c", "d", "e", "f"]);
+        assert_eq!(result.u_scores(), &u_scores);
+        assert_eq!(result.u_pvalues(), &u_pvalues);
+        assert_eq!(result.logfc(), &logfc);
+        assert_eq!(result.fdr().len(), 6);
+        assert_eq!(result.threshold(), 0.);
+        assert!((result.null_stddev() - 1.7320508075688774) < 1e-6);
     }
 }
