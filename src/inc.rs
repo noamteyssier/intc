@@ -87,7 +87,7 @@ impl<'a> Inc<'a> {
             encoding.encoding(),
             self.pvalues,
             &ntc_pvalues,
-            Alternative::Less,
+            self.alternative,
             self.continuity,
         );
 
