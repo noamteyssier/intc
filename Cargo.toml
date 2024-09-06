@@ -15,5 +15,5 @@ categories = ["science"]
 anyhow = "1.0.68"
 hashbrown = "0.13.2"
 ndarray = { version = "0.15.6", features = ["rayon"] }
-ndarray-rand = "0.14.0"
+ndarray-rand = "0.15.0"
 statrs = "0.16.0"
