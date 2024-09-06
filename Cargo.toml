@@ -16,4 +16,4 @@ anyhow = "1.0.68"
 hashbrown = "0.14.5"
 ndarray = { version = "0.15.6", features = ["rayon"] }
 ndarray-rand = "0.14.0"
-statrs = "0.16.0"
+statrs = "0.17.1"
