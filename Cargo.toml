@@ -1,6 +1,6 @@
 [package]
 name = "intc"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2021"
 description = "An implementation of the *-INC method to calculate an empirical FDR for non-targeting controls in CRISPR screens "
 license = "MIT"
@@ -13,7 +13,7 @@ categories = ["science"]
 
 [dependencies]
 anyhow = "1.0.68"
-hashbrown = "0.13.2"
-ndarray = { version = "0.15.6", features = ["rayon"] }
-ndarray-rand = "0.14.0"
-statrs = "0.16.0"
+hashbrown = "0.14.5"
+ndarray = { version = "0.16.1", features = ["rayon"] }
+ndarray-rand = "0.15.0"
+statrs = "0.17.1"
