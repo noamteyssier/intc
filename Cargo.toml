@@ -13,7 +13,7 @@ categories = ["science"]
 
 [dependencies]
 anyhow = "1.0.68"
-hashbrown = "0.14.5"
+hashbrown = "0.15.0"
 ndarray = { version = "0.16.1", features = ["rayon"] }
 ndarray-rand = "0.15.0"
 statrs = "0.17.1"
